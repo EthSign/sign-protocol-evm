@@ -17,7 +17,7 @@ interface ISAP is IVersionable {
     event OffchainAttestationMade(string attestationId);
 
     error SchemaExists(string existingSchemaId);
-    error SchemaNonexistent(string nonexistentSchemaIds);
+    error SchemaNonexistent(string nonexistentSchemaId);
     error AttestationIrrevocable(string schemaId, string offendingAttestationId);
     error AttestationExists(string existingAttestationId);
     error AttestationNonexistent(string nonexistentAttestationId);
