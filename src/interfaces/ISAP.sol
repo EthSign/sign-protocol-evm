@@ -11,16 +11,18 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @author Jack Xu @ EthSign
  */
 interface ISAP is IVersionable {
-    error SchemaIdsExist(string[] existingSchemaIds);
-    error SchemaIdsNonexistent(string[] nonexistentSchemaIds);
-    error SchemaIrrevocable(string[] schemaIds, string[] offendingAttestationIds);
-    error AttestationIdsExist(string[] existingAttestationIds);
-    error AttestationIdsNonexistent(string[] nonexistentAttestationIds);
-    error AttestationsInvalidDuration(
-        string[] offendingAttestationIds, uint256[] maxDurations, uint256[] inputDurations
-    );
-    error AttestationsAlreadyRevoked(string[] offendingAttestationIds);
-    error ResolverReverted(string reason);
+    event SchemaRegistered(string schemaId);
+    event AttestationMade(string attestationId);
+    event AttestationRevoked(string attestationId, string reason);
+    event OffchainAttestationMade(string attestationId);
+
+    error SchemaExists(string existingSchemaId);
+    error SchemaNonexistent(string nonexistentSchemaIds);
+    error AttestationIrrevocable(string schemaId, string offendingAttestationId);
+    error AttestationExists(string existingAttestationId);
+    error AttestationNonexistent(string nonexistentAttestationId);
+    error AttestationInvalidDuration(string offendingAttestationId, uint256 maxDuration, uint256 inputDuration);
+    error AttestationAlreadyRevoked(string offendingAttestationId);
 
     function register(string[] calldata schemaIds, Schema[] calldata schemas) external;
 
@@ -35,7 +37,45 @@ interface ISAP is IVersionable {
     function attest(
         string[] calldata attestationIds,
         Attestation[] calldata attestations,
-        address[] calldata resolverFeesERC20Tokens,
+        IERC20[] calldata resolverFeesERC20Tokens,
+        uint256[] calldata resolverFeesERC20Amount
+    ) external;
+
+    function attestOffchain(string[] calldata attestationIds) external;
+
+    function attestOffchain(string[] calldata attestationIds, uint256[] calldata resolverFeesETH) external payable;
+
+    function attestOffchain(
+        string[] calldata attestationIds,
+        IERC20[] calldata resolverFeesERC20Tokens,
+        uint256[] calldata resolverFeesERC20Amount
+    ) external;
+
+    function revoke(string[] calldata attestationIds, string[] calldata reasons) external;
+
+    function revoke(string[] calldata attestationIds, string[] calldata reasons, uint256[] calldata resolverFeesETH)
+        external
+        payable;
+
+    function revoke(
+        string[] calldata attestationIds,
+        string[] calldata reasons,
+        IERC20[] calldata resolverFeesERC20Tokens,
+        uint256[] calldata resolverFeesERC20Amount
+    ) external;
+
+    function revokeOffchain(string[] calldata attestationIds, string[] calldata reasons) external;
+
+    function revokeOffchain(
+        string[] calldata attestationIds,
+        string[] calldata reasons,
+        uint256[] calldata resolverFeesETH
+    ) external payable;
+
+    function revokeOffchain(
+        string[] calldata attestationIds,
+        string[] calldata reasons,
+        IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount
     ) external;
 }
