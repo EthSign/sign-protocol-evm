@@ -21,8 +21,10 @@ contract SAP is ISAP, ReplaceableERC2771Context {
 
     function attest(string[] calldata attestationIds, Attestation[] calldata attestations) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            _attest(attestationIds[i], attestations[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveAttestation(_msgSender(), attestationIds[i]);
+            string memory schemaId = _attest(attestationIds[i], attestations[i]);
+            __getResolverFromAttestationId(attestationIds[i]).didReceiveAttestation(
+                _msgSender(), schemaId, attestationIds[i]
+            );
         }
     }
 
@@ -32,9 +34,9 @@ contract SAP is ISAP, ReplaceableERC2771Context {
         uint256[] calldata resolverFeesETH
     ) external payable override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            _attest(attestationIds[i], attestations[i]);
+            string memory schemaId = _attest(attestationIds[i], attestations[i]);
             __getResolverFromAttestationId(attestationIds[i]).didReceiveAttestation{value: resolverFeesETH[i]}(
-                _msgSender(), attestationIds[i]
+                _msgSender(), schemaId, attestationIds[i]
             );
         }
     }
@@ -46,9 +48,9 @@ contract SAP is ISAP, ReplaceableERC2771Context {
         uint256[] calldata resolverFeesERC20Amount
     ) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            _attest(attestationIds[i], attestations[i]);
+            string memory schemaId = _attest(attestationIds[i], attestations[i]);
             __getResolverFromAttestationId(attestationIds[i]).didReceiveAttestation(
-                _msgSender(), attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
+                _msgSender(), schemaId, attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
             );
         }
     }
@@ -90,8 +92,10 @@ contract SAP is ISAP, ReplaceableERC2771Context {
 
     function revoke(string[] calldata attestationIds, string[] calldata reasons) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            _revoke(attestationIds[i], reasons[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveRevocation(_msgSender(), attestationIds[i]);
+            string memory schemaId = _revoke(attestationIds[i], reasons[i]);
+            __getResolverFromAttestationId(attestationIds[i]).didReceiveRevocation(
+                _msgSender(), schemaId, attestationIds[i]
+            );
         }
     }
 
@@ -101,9 +105,9 @@ contract SAP is ISAP, ReplaceableERC2771Context {
         override
     {
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            _revoke(attestationIds[i], reasons[i]);
+            string memory schemaId = _revoke(attestationIds[i], reasons[i]);
             __getResolverFromAttestationId(attestationIds[i]).didReceiveRevocation{value: resolverFeesETH[i]}(
-                _msgSender(), attestationIds[i]
+                _msgSender(), schemaId, attestationIds[i]
             );
         }
     }
@@ -115,9 +119,9 @@ contract SAP is ISAP, ReplaceableERC2771Context {
         uint256[] calldata resolverFeesERC20Amount
     ) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            _revoke(attestationIds[i], reasons[i]);
+            string memory schemaId = _revoke(attestationIds[i], reasons[i]);
             __getResolverFromAttestationId(attestationIds[i]).didReceiveRevocation(
-                _msgSender(), attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
+                _msgSender(), schemaId, attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
             );
         }
     }
@@ -166,14 +170,6 @@ contract SAP is ISAP, ReplaceableERC2771Context {
         return _attestationRegistry[attestationId];
     }
 
-    function getSchemaIdFromAttestationId(string calldata attestationId)
-        external
-        view
-        returns (string memory schemaId)
-    {
-        return _attestationRegistry[attestationId].schemaId;
-    }
-
     function version() external pure override returns (string memory) {
         return "1.0.0";
     }
@@ -185,7 +181,10 @@ contract SAP is ISAP, ReplaceableERC2771Context {
         emit SchemaRegistered(schemaId);
     }
 
-    function _attest(string calldata attestationId, Attestation calldata attestation) internal {
+    function _attest(string calldata attestationId, Attestation calldata attestation)
+        internal
+        returns (string memory schemaId)
+    {
         Attestation memory a = _attestationRegistry[attestationId];
         if (a.attester != address(0)) revert AttestationExists(attestationId);
         Schema memory s = _schemaRegistry[attestation.schemaId];
@@ -196,6 +195,7 @@ contract SAP is ISAP, ReplaceableERC2771Context {
         }
         _attestationRegistry[attestationId] = attestation;
         emit AttestationMade(attestationId);
+        return attestation.schemaId;
     }
 
     function _attestOffchain(string calldata attestationId) internal {
@@ -204,7 +204,7 @@ contract SAP is ISAP, ReplaceableERC2771Context {
         emit OffchainAttestationMade(attestationId);
     }
 
-    function _revoke(string calldata attestationId, string calldata reason) internal {
+    function _revoke(string calldata attestationId, string calldata reason) internal returns (string memory schemaId) {
         Attestation memory a = _attestationRegistry[attestationId];
         if (a.attester == address(0)) revert AttestationNonexistent(attestationId);
         Schema memory s = _schemaRegistry[a.schemaId];
@@ -212,6 +212,7 @@ contract SAP is ISAP, ReplaceableERC2771Context {
         if (a.revoked) revert AttestationAlreadyRevoked(attestationId);
         a.revoked = true;
         emit AttestationRevoked(attestationId, reason);
+        return a.schemaId;
     }
 
     function _revokeOffchain(string calldata attestationId, string calldata reason) internal {

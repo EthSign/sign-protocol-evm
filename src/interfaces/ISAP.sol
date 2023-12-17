@@ -85,9 +85,4 @@ interface ISAP is IVersionable {
     function attestationRegistry(string calldata attestationId) external view returns (Attestation memory);
 
     function offchainAttestationRegistry(string calldata attestationId) external view returns (uint256 timestamp);
-
-    function getSchemaIdFromAttestationId(string calldata attestationId)
-        external
-        view
-        returns (string memory schemaId);
 }
