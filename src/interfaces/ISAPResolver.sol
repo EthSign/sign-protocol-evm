@@ -8,33 +8,37 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @author Jack Xu @ EthSign
  */
 interface ISAPResolver {
-    function didReceiveAttestation(string calldata attestationId) external payable;
+    function didReceiveAttestation(address attester, string calldata attestationId) external payable;
 
     function didReceiveAttestation(
+        address attester,
         string calldata attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount
     ) external;
 
-    function didReceiveOffchainAttestation(string calldata attestationId) external payable;
+    function didReceiveOffchainAttestation(address attester, string calldata attestationId) external payable;
 
     function didReceiveOffchainAttestation(
-        string calldata attestationIds,
-        IERC20 resolverFeeERC20Token,
-        uint256 resolverFeesERC20Amount
-    ) external;
-
-    function didReceiveRevocation(string calldata attestationId) external payable;
-
-    function didReceiveRevocation(
+        address attester,
         string calldata attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount
     ) external;
 
-    function didReceiveOffchainRevocation(string calldata attestationId) external payable;
+    function didReceiveRevocation(address attester, string calldata attestationId) external payable;
+
+    function didReceiveRevocation(
+        address attester,
+        string calldata attestationId,
+        IERC20 resolverFeeERC20Token,
+        uint256 resolverFeeERC20Amount
+    ) external;
+
+    function didReceiveOffchainRevocation(address attester, string calldata attestationId) external payable;
 
     function didReceiveOffchainRevocation(
+        address attester,
         string calldata attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount

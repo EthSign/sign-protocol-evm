@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
+import {ISAPResolver} from "../interfaces/ISAPResolver.sol";
 import {IVersionable} from "./IVersionable.sol";
 import {Schema} from "../models/Schema.sol";
 import {Attestation} from "../models/Attestation.sol";
@@ -78,4 +79,15 @@ interface ISAP is IVersionable {
         IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount
     ) external;
+
+    function schemaRegistry(string calldata schemaId) external view returns (Schema memory);
+
+    function attestationRegistry(string calldata attestationId) external view returns (Attestation memory);
+
+    function offchainAttestationRegistry(string calldata attestationId) external view returns (uint256 timestamp);
+
+    function getSchemaIdFromAttestationId(string calldata attestationId)
+        external
+        view
+        returns (string memory schemaId);
 }
