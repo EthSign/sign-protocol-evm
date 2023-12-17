@@ -7,8 +7,9 @@ import {Schema} from "../models/Schema.sol";
 import {Attestation} from "../models/Attestation.sol";
 import {ReplaceableERC2771Context} from "../libraries/ReplaceableERC2771Context.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract SAP is ISAP, ReplaceableERC2771Context {
+contract SAP is ISAP, ReplaceableERC2771Context, UUPSUpgradeable {
     mapping(string => Schema) public _schemaRegistry;
     mapping(string => Attestation) public _attestationRegistry;
     mapping(string => uint256) public override offchainAttestationRegistry;
@@ -220,6 +221,8 @@ contract SAP is ISAP, ReplaceableERC2771Context {
         offchainAttestationRegistry[attestationId] = 0;
         emit AttestationRevoked(attestationId, reason);
     }
+
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
 
     function __getResolverFromAttestationId(string calldata attestationId) internal view returns (ISAPResolver) {
         Attestation memory a = _attestationRegistry[attestationId];
