@@ -15,6 +15,9 @@ contract MockResolverAdmin is OwnableUpgradeable {
     mapping(string => mapping(IERC20 => uint256)) public attestationTokenFees;
     mapping(IERC20 => bool) public approvedTokens;
 
+    event ETHFeesReceived(string attestationId, uint256 amount);
+    event TokenFeesReceived(string attestationId, IERC20 token, uint256 amount);
+
     error MismatchETHFee();
     error InsufficientETHFee();
     error UnapprovedToken();
@@ -39,6 +42,7 @@ contract MockResolverAdmin is OwnableUpgradeable {
     function _receiveEther(address attester, string memory schemaId, string calldata attestationId) internal {
         uint256 fees = bytes(schemaId).length == 0 ? attestationETHFees[attestationId] : schemaAttestETHFees[schemaId];
         if (msg.value != fees) revert InsufficientETHFee();
+        emit ETHFeesReceived(attestationId, msg.value);
         attester;
     }
 
@@ -55,6 +59,7 @@ contract MockResolverAdmin is OwnableUpgradeable {
             : schemaAttestTokenFees[schemaId][resolverFeeERC20Token];
         if (resolverFeeERC20Amount != fees) revert InsufficientTokenFee();
         resolverFeeERC20Token.safeTransferFrom(attester, address(this), resolverFeeERC20Amount);
+        emit TokenFeesReceived(attestationId, resolverFeeERC20Token, resolverFeeERC20Amount);
     }
 }
 
@@ -75,19 +80,6 @@ contract MockResolver is ISAPResolver, MockResolverAdmin {
         _receiveTokens(attester, schemaId, attestationId, resolverFeeERC20Token, resolverFeeERC20Amount);
     }
 
-    function didReceiveOffchainAttestation(address attester, string calldata attestationId) external payable override {
-        _receiveEther(attester, "", attestationId);
-    }
-
-    function didReceiveOffchainAttestation(
-        address attester,
-        string calldata attestationId,
-        IERC20 resolverFeeERC20Token,
-        uint256 resolverFeeERC20Amount
-    ) external override {
-        _receiveTokens(attester, "", attestationId, resolverFeeERC20Token, resolverFeeERC20Amount);
-    }
-
     function didReceiveRevocation(address attester, string calldata schemaId, string calldata attestationId)
         external
         payable
@@ -104,18 +96,5 @@ contract MockResolver is ISAPResolver, MockResolverAdmin {
         uint256 resolverFeeERC20Amount
     ) external override {
         _receiveTokens(attester, schemaId, attestationId, resolverFeeERC20Token, resolverFeeERC20Amount);
-    }
-
-    function didReceiveOffchainRevocation(address attester, string calldata attestationId) external payable override {
-        _receiveEther(attester, "", attestationId);
-    }
-
-    function didReceiveOffchainRevocation(
-        address attester,
-        string calldata attestationId,
-        IERC20 resolverFeeERC20Token,
-        uint256 resolverFeeERC20Amount
-    ) external override {
-        _receiveTokens(attester, "", attestationId, resolverFeeERC20Token, resolverFeeERC20Amount);
     }
 }

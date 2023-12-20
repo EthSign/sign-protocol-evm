@@ -20,15 +20,6 @@ interface ISAPResolver {
         uint256 resolverFeeERC20Amount
     ) external;
 
-    function didReceiveOffchainAttestation(address attester, string calldata attestationId) external payable;
-
-    function didReceiveOffchainAttestation(
-        address attester,
-        string calldata attestationId,
-        IERC20 resolverFeeERC20Token,
-        uint256 resolverFeeERC20Amount
-    ) external;
-
     function didReceiveRevocation(address attester, string calldata schemaId, string calldata attestationId)
         external
         payable;
@@ -36,15 +27,6 @@ interface ISAPResolver {
     function didReceiveRevocation(
         address attester,
         string calldata schemaId,
-        string calldata attestationId,
-        IERC20 resolverFeeERC20Token,
-        uint256 resolverFeeERC20Amount
-    ) external;
-
-    function didReceiveOffchainRevocation(address attester, string calldata attestationId) external payable;
-
-    function didReceiveOffchainRevocation(
-        address attester,
         string calldata attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount

@@ -22,7 +22,7 @@ interface ISAP is IVersionable {
     error AttestationIrrevocable(string schemaId, string offendingAttestationId);
     error AttestationExists(string existingAttestationId);
     error AttestationNonexistent(string nonexistentAttestationId);
-    error AttestationInvalidDuration(string offendingAttestationId, uint256 maxDuration, uint256 inputDuration);
+    error AttestationInvalidDuration(string offendingAttestationId, uint64 maxDuration, uint64 inputDuration);
     error AttestationAlreadyRevoked(string offendingAttestationId);
 
     function register(string[] calldata schemaIds, Schema[] calldata schemas) external;
@@ -44,14 +44,6 @@ interface ISAP is IVersionable {
 
     function attestOffchain(string[] calldata attestationIds) external;
 
-    function attestOffchain(string[] calldata attestationIds, uint256[] calldata resolverFeesETH) external payable;
-
-    function attestOffchain(
-        string[] calldata attestationIds,
-        IERC20[] calldata resolverFeesERC20Tokens,
-        uint256[] calldata resolverFeesERC20Amount
-    ) external;
-
     function revoke(string[] calldata attestationIds, string[] calldata reasons) external;
 
     function revoke(string[] calldata attestationIds, string[] calldata reasons, uint256[] calldata resolverFeesETH)
@@ -66,19 +58,6 @@ interface ISAP is IVersionable {
     ) external;
 
     function revokeOffchain(string[] calldata attestationIds, string[] calldata reasons) external;
-
-    function revokeOffchain(
-        string[] calldata attestationIds,
-        string[] calldata reasons,
-        uint256[] calldata resolverFeesETH
-    ) external payable;
-
-    function revokeOffchain(
-        string[] calldata attestationIds,
-        string[] calldata reasons,
-        IERC20[] calldata resolverFeesERC20Tokens,
-        uint256[] calldata resolverFeesERC20Amount
-    ) external;
 
     function schemaRegistry(string calldata schemaId) external view returns (Schema memory);
 

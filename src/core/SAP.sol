@@ -59,35 +59,6 @@ contract SAP is ISAP, ReplaceableERC2771Context, UUPSUpgradeable {
     function attestOffchain(string[] calldata attestationIds) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             _attestOffchain(attestationIds[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveOffchainAttestation(
-                _msgSender(), attestationIds[i]
-            );
-        }
-    }
-
-    function attestOffchain(string[] calldata attestationIds, uint256[] calldata resolverFeesETH)
-        external
-        payable
-        override
-    {
-        for (uint256 i = 0; i < attestationIds.length; i++) {
-            _attestOffchain(attestationIds[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveOffchainAttestation{value: resolverFeesETH[i]}(
-                _msgSender(), attestationIds[i]
-            );
-        }
-    }
-
-    function attestOffchain(
-        string[] calldata attestationIds,
-        IERC20[] calldata resolverFeesERC20Tokens,
-        uint256[] calldata resolverFeesERC20Amount
-    ) external override {
-        for (uint256 i = 0; i < attestationIds.length; i++) {
-            _attestOffchain(attestationIds[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveOffchainAttestation(
-                _msgSender(), attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
-            );
         }
     }
 
@@ -130,36 +101,6 @@ contract SAP is ISAP, ReplaceableERC2771Context, UUPSUpgradeable {
     function revokeOffchain(string[] calldata attestationIds, string[] calldata reasons) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             _revokeOffchain(attestationIds[i], reasons[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveOffchainRevocation(
-                _msgSender(), attestationIds[i]
-            );
-        }
-    }
-
-    function revokeOffchain(
-        string[] calldata attestationIds,
-        string[] calldata reasons,
-        uint256[] calldata resolverFeesETH
-    ) external payable override {
-        for (uint256 i = 0; i < attestationIds.length; i++) {
-            _revokeOffchain(attestationIds[i], reasons[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveOffchainRevocation{value: resolverFeesETH[i]}(
-                _msgSender(), attestationIds[i]
-            );
-        }
-    }
-
-    function revokeOffchain(
-        string[] calldata attestationIds,
-        string[] calldata reasons,
-        IERC20[] calldata resolverFeesERC20Tokens,
-        uint256[] calldata resolverFeesERC20Amount
-    ) external override {
-        for (uint256 i = 0; i < attestationIds.length; i++) {
-            _revokeOffchain(attestationIds[i], reasons[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveOffchainRevocation(
-                _msgSender(), attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
-            );
         }
     }
 
@@ -188,11 +129,12 @@ contract SAP is ISAP, ReplaceableERC2771Context, UUPSUpgradeable {
     {
         Attestation memory a = _attestationRegistry[attestationId];
         if (a.attester != address(0)) revert AttestationExists(attestationId);
+        if (attestation.revoked) revert AttestationAlreadyRevoked(attestationId);
         Schema memory s = _schemaRegistry[attestation.schemaId];
         if (bytes(s.schema).length == 0) revert SchemaNonexistent(attestation.schemaId);
         uint256 attestationValidFor = attestation.validUntil - block.timestamp;
         if (s.maxValidFor != 0 && s.maxValidFor < attestationValidFor) {
-            revert AttestationInvalidDuration(attestationId, s.maxValidFor, attestationValidFor);
+            revert AttestationInvalidDuration(attestationId, s.maxValidFor, uint64(attestationValidFor));
         }
         _attestationRegistry[attestationId] = attestation;
         emit AttestationMade(attestationId);
