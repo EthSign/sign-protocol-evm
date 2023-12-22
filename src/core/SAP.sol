@@ -5,14 +5,18 @@ import {ISAP} from "../interfaces/ISAP.sol";
 import {ISAPResolver} from "../interfaces/ISAPResolver.sol";
 import {Schema} from "../models/Schema.sol";
 import {Attestation} from "../models/Attestation.sol";
-import {ReplaceableERC2771Context} from "../libraries/ReplaceableERC2771Context.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract SAP is ISAP, ReplaceableERC2771Context, UUPSUpgradeable {
-    mapping(string => Schema) public _schemaRegistry;
-    mapping(string => Attestation) public _attestationRegistry;
+contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
+    mapping(string => Schema) internal _schemaRegistry;
+    mapping(string => Attestation) internal _attestationRegistry;
     mapping(string => uint256) public override offchainAttestationRegistry;
+
+    function initialize() external initializer {
+        __Ownable_init(_msgSender());
+    }
 
     function register(string[] calldata schemaIds, Schema[] calldata schemas) external override {
         for (uint256 i = 0; i < schemaIds.length; i++) {
