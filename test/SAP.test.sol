@@ -6,7 +6,7 @@ import "forge-std/console2.sol";
 import {SAP} from "../src/core/SAP.sol";
 import {ISAP} from "../src/interfaces/ISAP.sol";
 import {MockResolver} from "../src/mock/MockResolver.sol";
-import {Schema} from "../src/models/Schema.sol";
+import {Schema, DataLocation} from "../src/models/Schema.sol";
 import {Attestation} from "../src/models/Attestation.sol";
 import {MockERC20} from "../src/mock/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -185,9 +185,21 @@ contract SAPTest is Test {
 
     function _createMockSchemas() internal view returns (string[] memory, Schema[] memory) {
         string memory schemaId0 = "schemaId0";
-        Schema memory schema0 = Schema({revocable: true, maxValidFor: 0, resolver: mockResolver, schema: "stupid0"});
+        Schema memory schema0 = Schema({
+            revocable: true,
+            dataLocation: DataLocation.ONCHAIN,
+            maxValidFor: 0,
+            resolver: mockResolver,
+            schema: "stupid0"
+        });
         string memory schemaId1 = "schemaId1";
-        Schema memory schema1 = Schema({revocable: false, maxValidFor: 100, resolver: mockResolver, schema: "stupid1"});
+        Schema memory schema1 = Schema({
+            revocable: false,
+            dataLocation: DataLocation.ONCHAIN,
+            maxValidFor: 100,
+            resolver: mockResolver,
+            schema: "stupid1"
+        });
         string[] memory schemaIds = new string[](2);
         schemaIds[0] = schemaId0;
         schemaIds[1] = schemaId1;
