@@ -122,6 +122,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
 
     function _register(string calldata schemaId, Schema calldata schema) internal {
         Schema memory s = _schemaRegistry[schemaId];
+        if (bytes(schemaId).length == 0) revert SchemaIdInvalid();
         if (bytes(s.schema).length != 0) revert SchemaExists(schemaId);
         _schemaRegistry[schemaId] = schema;
         emit SchemaRegistered(schemaId);
@@ -134,6 +135,12 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         Attestation memory a = _attestationRegistry[attestationId];
         if (a.attester != address(0)) revert AttestationExists(attestationId);
         if (attestation.revoked) revert AttestationAlreadyRevoked(attestationId);
+        if (
+            bytes(attestation.linkedAttestationId).length > 0
+                && bytes(_attestationRegistry[attestation.linkedAttestationId].schemaId).length == 0
+        ) {
+            revert AttestationNonexistent(attestation.linkedAttestationId);
+        }
         Schema memory s = _schemaRegistry[attestation.schemaId];
         if (bytes(s.schema).length == 0) revert SchemaNonexistent(attestation.schemaId);
         uint256 attestationValidFor = attestation.validUntil - block.timestamp;

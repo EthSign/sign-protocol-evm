@@ -24,6 +24,7 @@ contract SAPTest is Test {
     event AttestationRevoked(string attestationId, string reason);
     event OffchainAttestationMade(string attestationId);
 
+    error SchemaIdInvalid();
     error SchemaExists(string existingSchemaId);
     error SchemaNonexistent(string nonexistentSchemaId);
     error AttestationIrrevocable(string schemaId, string offendingAttestationId);
@@ -40,7 +41,12 @@ contract SAPTest is Test {
 
     function test_register() public {
         (string[] memory schemaIds, Schema[] memory schemas) = _createMockSchemas();
+        // Trigger `SchemaIdInvalid`
+        schemaIds[0] = "";
+        vm.expectRevert(abi.encodeWithSelector(SchemaIdInvalid.selector));
+        sap.register(schemaIds, schemas);
         // Register 2 different schema, check events & storage
+        (schemaIds,) = _createMockSchemas();
         vm.expectEmit();
         emit SchemaRegistered(schemaIds[0]);
         vm.expectEmit();
@@ -90,8 +96,15 @@ contract SAPTest is Test {
         attestations[1].revoked = true;
         vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector, attestationIds[1]));
         sap.attest(attestationIds, attestations);
+        // Reset and trigger `AttestationNonexistent` for a linked attestation
+        (, attestations) = _createMockAttestations(schemaIds);
+        string memory nonexistentAttestationId = "asdasdasd";
+        attestations[1].linkedAttestationId = nonexistentAttestationId;
+        vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, nonexistentAttestationId));
+        sap.attest(attestationIds, attestations);
         // Reset and make attest normally
         (, attestations) = _createMockAttestations(schemaIds);
+        attestations[1].linkedAttestationId = attestationIds[0];
         vm.expectEmit();
         emit AttestationMade(attestationIds[0]);
         emit AttestationMade(attestationIds[1]);
@@ -214,6 +227,7 @@ contract SAPTest is Test {
         string memory attestationId0 = "attestationId0";
         Attestation memory attestation0 = Attestation({
             schemaId: schemaIds[0],
+            linkedAttestationId: "",
             attester: prankSender,
             validUntil: uint64(block.timestamp),
             revoked: false,
@@ -222,6 +236,7 @@ contract SAPTest is Test {
         string memory attestationId1 = "attestationId1";
         Attestation memory attestation1 = Attestation({
             schemaId: schemaIds[1],
+            linkedAttestationId: "",
             attester: prankSender,
             validUntil: uint64(block.timestamp),
             revoked: false,

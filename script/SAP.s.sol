@@ -9,7 +9,7 @@ contract SAPDeploymentScript is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-        address proxy = Upgrades.deployUUPSProxy("SAP.sol", abi.encodeCall(SAP.initialize, ()));
+        Upgrades.deployUUPSProxy("SAP.sol", abi.encodeCall(SAP.initialize, ()));
         vm.stopBroadcast();
     }
 }
