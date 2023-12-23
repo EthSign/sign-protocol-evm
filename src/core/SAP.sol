@@ -171,8 +171,9 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
 
     function _revokeOffchain(string calldata attestationId, string calldata reason) internal {
         if (offchainAttestationRegistry[attestationId] == 0) revert AttestationNonexistent(attestationId);
-        offchainAttestationRegistry[attestationId] = 0;
-        emit AttestationRevoked(attestationId, reason);
+        if (offchainAttestationRegistry[attestationId] == 1) revert AttestationAlreadyRevoked(attestationId);
+        offchainAttestationRegistry[attestationId] = 1;
+        emit OffchainAttestationRevoked(attestationId, reason);
     }
 
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}

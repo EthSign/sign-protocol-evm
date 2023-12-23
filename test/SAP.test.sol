@@ -23,6 +23,7 @@ contract SAPTest is Test {
     event AttestationMade(string attestationId);
     event AttestationRevoked(string attestationId, string reason);
     event OffchainAttestationMade(string attestationId);
+    event OffchainAttestationRevoked(string attestationId, string reason);
 
     error SchemaIdInvalid();
     error SchemaExists(string existingSchemaId);
@@ -175,11 +176,12 @@ contract SAPTest is Test {
         vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, attestationIds[0]));
         sap.revokeOffchain(attestationIds, reasons);
         // Attest normally
+        vm.warp(2); // Set block.timestamp to 2 to revoke checks aren't incorrectly tripped
         sap.attestOffchain(attestationIds);
         // Revoke normally
         vm.expectEmit();
-        emit AttestationRevoked(attestationIds[0], reasons[0]);
-        emit AttestationRevoked(attestationIds[1], reasons[1]);
+        emit OffchainAttestationRevoked(attestationIds[0], reasons[0]);
+        emit OffchainAttestationRevoked(attestationIds[1], reasons[1]);
         sap.revokeOffchain(attestationIds, reasons);
     }
 
