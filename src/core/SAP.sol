@@ -30,15 +30,17 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
 
     function attest(string calldata attestationId, Attestation calldata attestation) external override {
         string memory schemaId = _attest(attestationId, attestation);
-        __getResolverFromAttestationId(attestationId).didReceiveAttestation(_msgSender(), schemaId, attestationId);
+        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        if (address(resolver) != address(0)) resolver.didReceiveAttestation(_msgSender(), schemaId, attestationId);
     }
 
     function attest(string[] calldata attestationIds, Attestation[] calldata attestations) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _attest(attestationIds[i], attestations[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveAttestation(
-                _msgSender(), schemaId, attestationIds[i]
-            );
+            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            if (address(resolver) != address(0)) {
+                resolver.didReceiveAttestation(_msgSender(), schemaId, attestationIds[i]);
+            }
         }
     }
 
@@ -47,9 +49,10 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         payable
     {
         string memory schemaId = _attest(attestationId, attestation);
-        __getResolverFromAttestationId(attestationId).didReceiveAttestation{value: resolverFeesETH}(
-            _msgSender(), schemaId, attestationId
-        );
+        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        if (address(resolver) != address(0)) {
+            resolver.didReceiveAttestation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
+        }
     }
 
     function attest(
@@ -59,9 +62,10 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     ) external payable override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _attest(attestationIds[i], attestations[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveAttestation{value: resolverFeesETH[i]}(
-                _msgSender(), schemaId, attestationIds[i]
-            );
+            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            if (address(resolver) != address(0)) {
+                resolver.didReceiveAttestation{value: resolverFeesETH[i]}(_msgSender(), schemaId, attestationIds[i]);
+            }
         }
     }
 
@@ -72,9 +76,12 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         uint256 resolverFeesERC20Amount
     ) external override {
         string memory schemaId = _attest(attestationId, attestation);
-        __getResolverFromAttestationId(attestationId).didReceiveAttestation(
-            _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount
-        );
+        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        if (address(resolver) != address(0)) {
+            resolver.didReceiveAttestation(
+                _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount
+            );
+        }
     }
 
     function attest(
@@ -85,9 +92,12 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     ) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _attest(attestationIds[i], attestations[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveAttestation(
-                _msgSender(), schemaId, attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
-            );
+            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            if (address(resolver) != address(0)) {
+                resolver.didReceiveAttestation(
+                    _msgSender(), schemaId, attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
+                );
+            }
         }
     }
 
@@ -103,15 +113,19 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
 
     function revoke(string calldata attestationId, string calldata reason) external override {
         string memory schemaId = _revoke(attestationId, reason);
-        __getResolverFromAttestationId(attestationId).didReceiveRevocation(_msgSender(), schemaId, attestationId);
+        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        if (address(resolver) != address(0)) {
+            resolver.didReceiveRevocation(_msgSender(), schemaId, attestationId);
+        }
     }
 
     function revoke(string[] calldata attestationIds, string[] calldata reasons) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _revoke(attestationIds[i], reasons[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveRevocation(
-                _msgSender(), schemaId, attestationIds[i]
-            );
+            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            if (address(resolver) != address(0)) {
+                resolver.didReceiveRevocation(_msgSender(), schemaId, attestationIds[i]);
+            }
         }
     }
 
@@ -121,9 +135,10 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         override
     {
         string memory schemaId = _revoke(attestationId, reason);
-        __getResolverFromAttestationId(attestationId).didReceiveRevocation{value: resolverFeesETH}(
-            _msgSender(), schemaId, attestationId
-        );
+        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        if (address(resolver) != address(0)) {
+            resolver.didReceiveRevocation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
+        }
     }
 
     function revoke(string[] calldata attestationIds, string[] calldata reasons, uint256[] calldata resolverFeesETH)
@@ -133,9 +148,10 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _revoke(attestationIds[i], reasons[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveRevocation{value: resolverFeesETH[i]}(
-                _msgSender(), schemaId, attestationIds[i]
-            );
+            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            if (address(resolver) != address(0)) {
+                resolver.didReceiveRevocation{value: resolverFeesETH[i]}(_msgSender(), schemaId, attestationIds[i]);
+            }
         }
     }
 
@@ -146,9 +162,12 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         uint256 resolverFeesERC20Amount
     ) external override {
         string memory schemaId = _revoke(attestationId, reason);
-        __getResolverFromAttestationId(attestationId).didReceiveRevocation(
-            _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount
-        );
+        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        if (address(resolver) != address(0)) {
+            resolver.didReceiveRevocation(
+                _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount
+            );
+        }
     }
 
     function revoke(
@@ -159,9 +178,12 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     ) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _revoke(attestationIds[i], reasons[i]);
-            __getResolverFromAttestationId(attestationIds[i]).didReceiveRevocation(
-                _msgSender(), schemaId, attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
-            );
+            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            if (address(resolver) != address(0)) {
+                resolver.didReceiveRevocation(
+                    _msgSender(), schemaId, attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
+                );
+            }
         }
     }
 
@@ -201,7 +223,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     {
         Attestation memory a = _attestationRegistry[attestationId];
         if (a.attester != address(0)) revert AttestationExists(attestationId);
-        if (attestation.revoked) revert AttestationAlreadyRevoked(attestationId);
+        if (attestation.attester != _msgSender()) revert AttestationWrongAttester(attestation.attester, _msgSender());
         if (
             bytes(attestation.linkedAttestationId).length > 0
                 && bytes(_attestationRegistry[attestation.linkedAttestationId].schemaId).length == 0
@@ -228,6 +250,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     function _revoke(string calldata attestationId, string calldata reason) internal returns (string memory schemaId) {
         Attestation memory a = _attestationRegistry[attestationId];
         if (a.attester == address(0)) revert AttestationNonexistent(attestationId);
+        if (a.attester != _msgSender()) revert AttestationWrongAttester(a.attester, _msgSender());
         Schema memory s = _schemaRegistry[a.schemaId];
         if (!s.revocable) revert AttestationIrrevocable(a.schemaId, attestationId);
         if (a.revoked) revert AttestationAlreadyRevoked(attestationId);

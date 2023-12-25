@@ -26,6 +26,7 @@ interface ISAP is IVersionable {
     error AttestationNonexistent(string nonexistentAttestationId);
     error AttestationInvalidDuration(string offendingAttestationId, uint64 maxDuration, uint64 inputDuration);
     error AttestationAlreadyRevoked(string offendingAttestationId);
+    error AttestationWrongAttester(address expected, address actual);
 
     function register(string calldata schemaId, Schema calldata schema) external;
 
