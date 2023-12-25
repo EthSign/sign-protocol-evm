@@ -12,7 +12,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     mapping(string => Schema) internal _schemaRegistry;
     mapping(string => Attestation) internal _attestationRegistry;
-    mapping(string => uint256) public override offchainAttestationRegistry;
+    mapping(string => uint256) internal _offchainAttestationRegistry;
 
     function initialize() external initializer {
         __Ownable_init(_msgSender());
@@ -22,7 +22,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         _register(schemaId, schema);
     }
 
-    function register(string[] calldata schemaIds, Schema[] calldata schemas) external override {
+    function registerBatch(string[] calldata schemaIds, Schema[] calldata schemas) external override {
         for (uint256 i = 0; i < schemaIds.length; i++) {
             _register(schemaIds[i], schemas[i]);
         }
@@ -34,7 +34,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         if (address(resolver) != address(0)) resolver.didReceiveAttestation(_msgSender(), schemaId, attestationId);
     }
 
-    function attest(string[] calldata attestationIds, Attestation[] calldata attestations) external override {
+    function attestBatch(string[] calldata attestationIds, Attestation[] calldata attestations) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _attest(attestationIds[i], attestations[i]);
             ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
@@ -55,7 +55,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function attest(
+    function attestBatch(
         string[] calldata attestationIds,
         Attestation[] calldata attestations,
         uint256[] calldata resolverFeesETH
@@ -84,7 +84,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function attest(
+    function attestBatch(
         string[] calldata attestationIds,
         Attestation[] calldata attestations,
         IERC20[] calldata resolverFeesERC20Tokens,
@@ -105,7 +105,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         _attestOffchain(attestationId);
     }
 
-    function attestOffchain(string[] calldata attestationIds) external override {
+    function attestOffchainBatch(string[] calldata attestationIds) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             _attestOffchain(attestationIds[i]);
         }
@@ -119,7 +119,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function revoke(string[] calldata attestationIds, string[] calldata reasons) external override {
+    function revokeBatch(string[] calldata attestationIds, string[] calldata reasons) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _revoke(attestationIds[i], reasons[i]);
             ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
@@ -141,11 +141,11 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function revoke(string[] calldata attestationIds, string[] calldata reasons, uint256[] calldata resolverFeesETH)
-        external
-        payable
-        override
-    {
+    function revokeBatch(
+        string[] calldata attestationIds,
+        string[] calldata reasons,
+        uint256[] calldata resolverFeesETH
+    ) external payable override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _revoke(attestationIds[i], reasons[i]);
             ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
@@ -170,7 +170,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function revoke(
+    function revokeBatch(
         string[] calldata attestationIds,
         string[] calldata reasons,
         IERC20[] calldata resolverFeesERC20Tokens,
@@ -191,18 +191,22 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         _revokeOffchain(attestationId, reason);
     }
 
-    function revokeOffchain(string[] calldata attestationIds, string[] calldata reasons) external override {
+    function revokeOffchainBatch(string[] calldata attestationIds, string[] calldata reasons) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             _revokeOffchain(attestationIds[i], reasons[i]);
         }
     }
 
-    function schemaRegistry(string calldata schemaId) external view override returns (Schema memory) {
+    function getSchema(string calldata schemaId) external view override returns (Schema memory) {
         return _schemaRegistry[schemaId];
     }
 
-    function attestationRegistry(string calldata attestationId) external view override returns (Attestation memory) {
+    function getAttestation(string calldata attestationId) external view override returns (Attestation memory) {
         return _attestationRegistry[attestationId];
+    }
+
+    function getOffchainAttestation(string calldata attestationId) external view returns (uint256 timestamp) {
+        return _offchainAttestationRegistry[attestationId];
     }
 
     function version() external pure override returns (string memory) {
@@ -242,13 +246,13 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function _attestOffchain(string calldata attestationId) internal {
-        if (offchainAttestationRegistry[attestationId] != 0) revert AttestationExists(attestationId);
-        offchainAttestationRegistry[attestationId] = block.timestamp;
+        if (_offchainAttestationRegistry[attestationId] != 0) revert AttestationExists(attestationId);
+        _offchainAttestationRegistry[attestationId] = block.timestamp;
         emit OffchainAttestationMade(attestationId);
     }
 
     function _revoke(string calldata attestationId, string calldata reason) internal returns (string memory schemaId) {
-        Attestation memory a = _attestationRegistry[attestationId];
+        Attestation storage a = _attestationRegistry[attestationId];
         if (a.attester == address(0)) revert AttestationNonexistent(attestationId);
         if (a.attester != _msgSender()) revert AttestationWrongAttester(a.attester, _msgSender());
         Schema memory s = _schemaRegistry[a.schemaId];
@@ -260,9 +264,9 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function _revokeOffchain(string calldata attestationId, string calldata reason) internal {
-        if (offchainAttestationRegistry[attestationId] == 0) revert AttestationNonexistent(attestationId);
-        if (offchainAttestationRegistry[attestationId] == 1) revert AttestationAlreadyRevoked(attestationId);
-        offchainAttestationRegistry[attestationId] = 1;
+        if (_offchainAttestationRegistry[attestationId] == 0) revert AttestationNonexistent(attestationId);
+        if (_offchainAttestationRegistry[attestationId] == 1) revert AttestationAlreadyRevoked(attestationId);
+        _offchainAttestationRegistry[attestationId] = 1;
         emit OffchainAttestationRevoked(attestationId, reason);
     }
 

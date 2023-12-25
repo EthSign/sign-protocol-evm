@@ -33,6 +33,7 @@ contract SAPTest is Test {
     error AttestationNonexistent(string nonexistentAttestationId);
     error AttestationInvalidDuration(string offendingAttestationId, uint64 maxDuration, uint64 inputDuration);
     error AttestationAlreadyRevoked(string offendingAttestationId);
+    error AttestationWrongAttester(address expected, address actual);
 
     function setUp() public {
         sap = new SAP();
@@ -45,18 +46,18 @@ contract SAPTest is Test {
         // Trigger `SchemaIdInvalid`
         schemaIds[0] = "";
         vm.expectRevert(abi.encodeWithSelector(SchemaIdInvalid.selector));
-        sap.register(schemaIds, schemas);
+        sap.registerBatch(schemaIds, schemas);
         // Register 2 different schema, check events & storage
         (schemaIds,) = _createMockSchemas();
         vm.expectEmit();
         emit SchemaRegistered(schemaIds[0]);
         vm.expectEmit();
         emit SchemaRegistered(schemaIds[1]);
-        sap.register(schemaIds, schemas);
+        sap.registerBatch(schemaIds, schemas);
         Schema memory schema0Expected = schemas[0];
         Schema memory schema1Expected = schemas[1];
-        Schema memory schema0Actual = sap.schemaRegistry(schemaIds[0]);
-        Schema memory schema1Actual = sap.schemaRegistry(schemaIds[1]);
+        Schema memory schema0Actual = sap.getSchema(schemaIds[0]);
+        Schema memory schema1Actual = sap.getSchema(schemaIds[1]);
         assertEq(schema0Expected.schema, schema0Actual.schema);
         assertEq(schema0Expected.revocable, schema0Actual.revocable);
         assertEq(address(schema0Expected.resolver), address(schema0Actual.resolver));
@@ -67,13 +68,13 @@ contract SAPTest is Test {
         assertEq(schema1Expected.maxValidFor, schema1Actual.maxValidFor);
         // Register the same schemas with the same IDs, check revert
         vm.expectRevert(abi.encodeWithSelector(SchemaExists.selector, schemaIds[0]));
-        sap.register(schemaIds, schemas);
+        sap.registerBatch(schemaIds, schemas);
     }
 
     function test_attest() public {
         // Register 2 different schemas
         (string[] memory schemaIds, Schema[] memory schemas) = _createMockSchemas();
-        sap.register(schemaIds, schemas);
+        sap.registerBatch(schemaIds, schemas);
         // Create two normal attestations
         (string[] memory attestationIds, Attestation[] memory attestations) = _createMockAttestations(schemaIds);
         // Modify the second one to trigger `AttestationInvalidDuration`
@@ -86,23 +87,21 @@ contract SAPTest is Test {
                 attestations[1].validUntil - block.timestamp
             )
         );
-        sap.attest(attestationIds, attestations);
+        vm.prank(prankSender);
+        sap.attestBatch(attestationIds, attestations);
         // Reset and trigger `SchemaNonexistent`
         (, attestations) = _createMockAttestations(schemaIds);
         attestations[1].schemaId = "asdasd";
         vm.expectRevert(abi.encodeWithSelector(SchemaNonexistent.selector, attestations[1].schemaId));
-        sap.attest(attestationIds, attestations);
-        // Reset and trigger `AttestationAlreadyRevoked`
-        (, attestations) = _createMockAttestations(schemaIds);
-        attestations[1].revoked = true;
-        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector, attestationIds[1]));
-        sap.attest(attestationIds, attestations);
+        vm.prank(prankSender);
+        sap.attestBatch(attestationIds, attestations);
         // Reset and trigger `AttestationNonexistent` for a linked attestation
         (, attestations) = _createMockAttestations(schemaIds);
         string memory nonexistentAttestationId = "asdasdasd";
         attestations[1].linkedAttestationId = nonexistentAttestationId;
         vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, nonexistentAttestationId));
-        sap.attest(attestationIds, attestations);
+        vm.prank(prankSender);
+        sap.attestBatch(attestationIds, attestations);
         // Reset and make attest normally
         (, attestations) = _createMockAttestations(schemaIds);
         attestations[1].linkedAttestationId = attestationIds[0];
@@ -110,13 +109,14 @@ contract SAPTest is Test {
         emit AttestationMade(attestationIds[0]);
         emit AttestationMade(attestationIds[1]);
         vm.prank(prankSender);
-        sap.attest(attestationIds, attestations);
+        sap.attestBatch(attestationIds, attestations);
         // Attest duplicate and trigger `AttestationExists`
         vm.expectRevert(abi.encodeWithSelector(AttestationExists.selector, attestationIds[0]));
-        sap.attest(attestationIds, attestations);
+        vm.prank(prankSender);
+        sap.attestBatch(attestationIds, attestations);
         // Check storage
-        Attestation memory attestation0Actual = sap.attestationRegistry(attestationIds[0]);
-        Attestation memory attestation1Actual = sap.attestationRegistry(attestationIds[1]);
+        Attestation memory attestation0Actual = sap.getAttestation(attestationIds[0]);
+        Attestation memory attestation1Actual = sap.getAttestation(attestationIds[1]);
         assertEq(attestation0Actual.attester, prankSender);
         assertEq(attestation0Actual.schemaId, attestations[0].schemaId);
         assertEq(attestation1Actual.attester, prankSender);
@@ -126,35 +126,47 @@ contract SAPTest is Test {
     function test_revokeFail() public {
         // Register 2 different schemas
         (string[] memory schemaIds, Schema[] memory schemas) = _createMockSchemas();
-        sap.register(schemaIds, schemas);
+        sap.registerBatch(schemaIds, schemas);
         // Make two normal attestations
         (string[] memory attestationIds, Attestation[] memory attestations) = _createMockAttestations(schemaIds);
-        sap.attest(attestationIds, attestations);
+        vm.prank(prankSender);
+        sap.attestBatch(attestationIds, attestations);
         string[] memory reasons = _createMockReasons();
         // Trigger `AttestationNonexistent`
         attestationIds[0] = "asdasd";
         vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, attestationIds[0]));
-        sap.revoke(attestationIds, reasons);
+        vm.prank(prankSender);
+        sap.revokeBatch(attestationIds, reasons);
         // Trigger `AttestationIrrevocable`
         (attestationIds,) = _createMockAttestations(schemaIds);
         vm.expectRevert(abi.encodeWithSelector(AttestationIrrevocable.selector, schemaIds[1], attestationIds[1]));
-        sap.revoke(attestationIds, reasons);
+        vm.prank(prankSender);
+        sap.revokeBatch(attestationIds, reasons);
+        // Trigger `AttestationWrongAttester`
+        vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector, prankSender, address(this)));
+        sap.revokeBatch(attestationIds, reasons);
     }
 
     function test_revoke() public {
         // Register 2 different schemas
         (string[] memory schemaIds, Schema[] memory schemas) = _createMockSchemas();
         schemas[1].revocable = true;
-        sap.register(schemaIds, schemas);
+        sap.registerBatch(schemaIds, schemas);
         // Make two normal attestations
         (string[] memory attestationIds, Attestation[] memory attestations) = _createMockAttestations(schemaIds);
-        sap.attest(attestationIds, attestations);
+        vm.prank(prankSender);
+        sap.attestBatch(attestationIds, attestations);
         string[] memory reasons = _createMockReasons();
         // Revoke normally
         vm.expectEmit();
         emit AttestationRevoked(attestationIds[0], reasons[0]);
         emit AttestationRevoked(attestationIds[1], reasons[1]);
-        sap.revoke(attestationIds, reasons);
+        vm.prank(prankSender);
+        sap.revokeBatch(attestationIds, reasons);
+        // Revoke again and trigger `AttestationAlreadyRevoked`
+        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector, attestationIds[0]));
+        vm.prank(prankSender);
+        sap.revokeBatch(attestationIds, reasons);
     }
 
     function test_attestOffchain() public {
@@ -163,10 +175,10 @@ contract SAPTest is Test {
         vm.expectEmit();
         emit OffchainAttestationMade(attestationIds[0]);
         emit OffchainAttestationMade(attestationIds[1]);
-        sap.attestOffchain(attestationIds);
+        sap.attestOffchainBatch(attestationIds);
         // Attest again, trigger `AttestationExists`
         vm.expectRevert(abi.encodeWithSelector(AttestationExists.selector, attestationIds[0]));
-        sap.attestOffchain(attestationIds);
+        sap.attestOffchainBatch(attestationIds);
     }
 
     function test_revokeOffchain() public {
@@ -174,15 +186,15 @@ contract SAPTest is Test {
         string[] memory reasons = _createMockReasons();
         // Revoke, trigger `AttestationNonexistent`
         vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, attestationIds[0]));
-        sap.revokeOffchain(attestationIds, reasons);
+        sap.revokeOffchainBatch(attestationIds, reasons);
         // Attest normally
         vm.warp(2); // Set block.timestamp to 2 to revoke checks aren't incorrectly tripped
-        sap.attestOffchain(attestationIds);
+        sap.attestOffchainBatch(attestationIds);
         // Revoke normally
         vm.expectEmit();
         emit OffchainAttestationRevoked(attestationIds[0], reasons[0]);
         emit OffchainAttestationRevoked(attestationIds[1], reasons[1]);
-        sap.revokeOffchain(attestationIds, reasons);
+        sap.revokeOffchainBatch(attestationIds, reasons);
     }
 
     function _createMockSchemas() internal view returns (string[] memory, Schema[] memory) {
@@ -242,6 +254,7 @@ contract SAPTest is Test {
         Attestation memory attestation0 = Attestation({
             schemaId: schemaIds[0],
             linkedAttestationId: "",
+            data: "",
             attester: prankSender,
             validUntil: uint64(block.timestamp),
             revoked: false,
@@ -251,6 +264,7 @@ contract SAPTest is Test {
         Attestation memory attestation1 = Attestation({
             schemaId: schemaIds[1],
             linkedAttestationId: "",
+            data: "",
             attester: prankSender,
             validUntil: uint64(block.timestamp),
             revoked: false,

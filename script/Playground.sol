@@ -9,9 +9,10 @@ import {Attestation} from "../src/models/Attestation.sol";
 
 contract Playground is Script {
     function run() public {
-        ISAP instance = ISAP(0x9aaB2Dc850096891BD89D06866E1011C41EEa80D);
-        // _register(instance);
-        _attest(instance);
+        ISAP instance = ISAP(0xF1652Cd77b01Adad92456C6a4cf860C4Cc082b8f);
+        _register(instance);
+        _attest0(instance);
+        _attest1(instance);
     }
 
     function _register(ISAP instance) internal {
@@ -29,7 +30,27 @@ contract Playground is Script {
         vm.stopBroadcast();
     }
 
-    function _attest(ISAP instance) internal {
+    function _attest0(ISAP instance) internal {
+        string memory attestationId = "test attestation id 0";
+        address[] memory recipients = new address[](2);
+        recipients[0] = 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094;
+        recipients[1] = 0x003BBE6Da0EB4963856395829030FcE383a14C53;
+        Attestation memory attestation = Attestation({
+            schemaId: "test schema id 0",
+            linkedAttestationId: "",
+            data: "some data 0",
+            attester: 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094,
+            validUntil: uint64(block.timestamp + 119),
+            revoked: false,
+            recipients: recipients
+        });
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
+        instance.attest(attestationId, attestation);
+        vm.stopBroadcast();
+    }
+
+    function _attest1(ISAP instance) internal {
         string memory attestationId = "test attestation id 1";
         address[] memory recipients = new address[](2);
         recipients[0] = 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094;
@@ -37,6 +58,7 @@ contract Playground is Script {
         Attestation memory attestation = Attestation({
             schemaId: "test schema id 0",
             linkedAttestationId: "test attestation id 0",
+            data: "some data 1",
             attester: 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094,
             validUntil: uint64(block.timestamp + 119),
             revoked: false,
