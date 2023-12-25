@@ -18,10 +18,19 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         __Ownable_init(_msgSender());
     }
 
+    function register(string calldata schemaId, Schema calldata schema) external override {
+        _register(schemaId, schema);
+    }
+
     function register(string[] calldata schemaIds, Schema[] calldata schemas) external override {
         for (uint256 i = 0; i < schemaIds.length; i++) {
             _register(schemaIds[i], schemas[i]);
         }
+    }
+
+    function attest(string calldata attestationId, Attestation calldata attestation) external override {
+        string memory schemaId = _attest(attestationId, attestation);
+        __getResolverFromAttestationId(attestationId).didReceiveAttestation(_msgSender(), schemaId, attestationId);
     }
 
     function attest(string[] calldata attestationIds, Attestation[] calldata attestations) external override {
@@ -31,6 +40,16 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
                 _msgSender(), schemaId, attestationIds[i]
             );
         }
+    }
+
+    function attest(string calldata attestationId, Attestation calldata attestation, uint256 resolverFeesETH)
+        external
+        payable
+    {
+        string memory schemaId = _attest(attestationId, attestation);
+        __getResolverFromAttestationId(attestationId).didReceiveAttestation{value: resolverFeesETH}(
+            _msgSender(), schemaId, attestationId
+        );
     }
 
     function attest(
@@ -47,6 +66,18 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function attest(
+        string calldata attestationId,
+        Attestation calldata attestation,
+        IERC20 resolverFeesERC20Token,
+        uint256 resolverFeesERC20Amount
+    ) external override {
+        string memory schemaId = _attest(attestationId, attestation);
+        __getResolverFromAttestationId(attestationId).didReceiveAttestation(
+            _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount
+        );
+    }
+
+    function attest(
         string[] calldata attestationIds,
         Attestation[] calldata attestations,
         IERC20[] calldata resolverFeesERC20Tokens,
@@ -60,10 +91,19 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
+    function attestOffchain(string calldata attestationId) external override {
+        _attestOffchain(attestationId);
+    }
+
     function attestOffchain(string[] calldata attestationIds) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             _attestOffchain(attestationIds[i]);
         }
+    }
+
+    function revoke(string calldata attestationId, string calldata reason) external override {
+        string memory schemaId = _revoke(attestationId, reason);
+        __getResolverFromAttestationId(attestationId).didReceiveRevocation(_msgSender(), schemaId, attestationId);
     }
 
     function revoke(string[] calldata attestationIds, string[] calldata reasons) external override {
@@ -73,6 +113,17 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
                 _msgSender(), schemaId, attestationIds[i]
             );
         }
+    }
+
+    function revoke(string calldata attestationId, string calldata reason, uint256 resolverFeesETH)
+        external
+        payable
+        override
+    {
+        string memory schemaId = _revoke(attestationId, reason);
+        __getResolverFromAttestationId(attestationId).didReceiveRevocation{value: resolverFeesETH}(
+            _msgSender(), schemaId, attestationId
+        );
     }
 
     function revoke(string[] calldata attestationIds, string[] calldata reasons, uint256[] calldata resolverFeesETH)
@@ -89,6 +140,18 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function revoke(
+        string calldata attestationId,
+        string calldata reason,
+        IERC20 resolverFeesERC20Token,
+        uint256 resolverFeesERC20Amount
+    ) external override {
+        string memory schemaId = _revoke(attestationId, reason);
+        __getResolverFromAttestationId(attestationId).didReceiveRevocation(
+            _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount
+        );
+    }
+
+    function revoke(
         string[] calldata attestationIds,
         string[] calldata reasons,
         IERC20[] calldata resolverFeesERC20Tokens,
@@ -100,6 +163,10 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
                 _msgSender(), schemaId, attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
             );
         }
+    }
+
+    function revokeOffchain(string calldata attestationId, string calldata reason) external override {
+        _revokeOffchain(attestationId, reason);
     }
 
     function revokeOffchain(string[] calldata attestationIds, string[] calldata reasons) external override {

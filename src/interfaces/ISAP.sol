@@ -27,9 +27,17 @@ interface ISAP is IVersionable {
     error AttestationInvalidDuration(string offendingAttestationId, uint64 maxDuration, uint64 inputDuration);
     error AttestationAlreadyRevoked(string offendingAttestationId);
 
+    function register(string calldata schemaId, Schema calldata schema) external;
+
     function register(string[] calldata schemaIds, Schema[] calldata schemas) external;
 
+    function attest(string calldata attestationId, Attestation calldata attestation) external;
+
     function attest(string[] calldata attestationIds, Attestation[] calldata attestations) external;
+
+    function attest(string calldata attestationId, Attestation calldata attestation, uint256 resolverFeesETH)
+        external
+        payable;
 
     function attest(
         string[] calldata attestationIds,
@@ -38,19 +46,39 @@ interface ISAP is IVersionable {
     ) external payable;
 
     function attest(
+        string calldata attestationId,
+        Attestation calldata attestation,
+        IERC20 resolverFeesERC20Token,
+        uint256 resolverFeesERC20Amount
+    ) external;
+
+    function attest(
         string[] calldata attestationIds,
         Attestation[] calldata attestations,
         IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount
     ) external;
 
+    function attestOffchain(string calldata attestationId) external;
+
     function attestOffchain(string[] calldata attestationIds) external;
 
+    function revoke(string calldata attestationId, string calldata reason) external;
+
     function revoke(string[] calldata attestationIds, string[] calldata reasons) external;
+
+    function revoke(string calldata attestationId, string calldata reason, uint256 resolverFeesETH) external payable;
 
     function revoke(string[] calldata attestationIds, string[] calldata reasons, uint256[] calldata resolverFeesETH)
         external
         payable;
+
+    function revoke(
+        string calldata attestationId,
+        string calldata reason,
+        IERC20 resolverFeesERC20Token,
+        uint256 resolverFeesERC20Amount
+    ) external;
 
     function revoke(
         string[] calldata attestationIds,
@@ -58,6 +86,8 @@ interface ISAP is IVersionable {
         IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount
     ) external;
+
+    function revokeOffchain(string calldata attestationId, string calldata reason) external;
 
     function revokeOffchain(string[] calldata attestationIds, string[] calldata reasons) external;
 
