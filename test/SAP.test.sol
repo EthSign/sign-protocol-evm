@@ -102,8 +102,18 @@ contract SAPTest is Test {
         vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, nonexistentAttestationId));
         vm.prank(prankSender);
         sap.attestBatch(attestationIds, attestations);
+        // Reset and trigger `AttestationWrongAttester` for a linked attestation
+        (, attestations) = _createMockAttestations(schemaIds);
+        attestations[1].attester = prankRecipient0;
+        attestations[1].linkedAttestationId = attestationIds[0];
+        vm.prank(prankSender);
+        sap.attest(attestationIds[0], attestations[0]);
+        vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector, prankSender, prankRecipient0));
+        vm.prank(prankRecipient0);
+        sap.attest(attestationIds[1], attestations[1]);
         // Reset and make attest normally
         (, attestations) = _createMockAttestations(schemaIds);
+        attestationIds[0] = "A0";
         attestations[1].linkedAttestationId = attestationIds[0];
         vm.expectEmit();
         emit AttestationMade(attestationIds[0]);

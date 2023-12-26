@@ -234,6 +234,10 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         ) {
             revert AttestationNonexistent(attestation.linkedAttestationId);
         }
+        if (
+            bytes(attestation.linkedAttestationId).length > 0
+                && _attestationRegistry[attestation.linkedAttestationId].attester != _msgSender()
+        ) revert AttestationWrongAttester(_attestationRegistry[attestation.linkedAttestationId].attester, _msgSender());
         Schema memory s = _schemaRegistry[attestation.schemaId];
         if (bytes(s.schema).length == 0) revert SchemaNonexistent(attestation.schemaId);
         uint256 attestationValidFor = attestation.validUntil - block.timestamp;
