@@ -240,9 +240,11 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         ) revert AttestationWrongAttester(_attestationRegistry[attestation.linkedAttestationId].attester, _msgSender());
         Schema memory s = _schemaRegistry[attestation.schemaId];
         if (bytes(s.schema).length == 0) revert SchemaNonexistent(attestation.schemaId);
-        uint256 attestationValidFor = attestation.validUntil - block.timestamp;
-        if (s.maxValidFor != 0 && s.maxValidFor < attestationValidFor) {
-            revert AttestationInvalidDuration(attestationId, s.maxValidFor, uint64(attestationValidFor));
+        if (s.maxValidFor > 0) {
+            uint256 attestationValidFor = attestation.validUntil - block.timestamp;
+            if (s.maxValidFor < attestationValidFor) {
+                revert AttestationInvalidDuration(attestationId, s.maxValidFor, uint64(attestationValidFor));
+            }
         }
         _attestationRegistry[attestationId] = attestation;
         emit AttestationMade(attestationId);
