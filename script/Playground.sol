@@ -6,11 +6,11 @@ import {ISAP} from "../src/interfaces/ISAP.sol";
 import {ISAPResolver} from "../src/interfaces/ISAPResolver.sol";
 import {Schema} from "../src/models/Schema.sol";
 import {Attestation} from "../src/models/Attestation.sol";
-import {DataLocation, URIPointer} from "../src/models/OffchainResource.sol";
+import {DataLocation, SchemaMetadata} from "../src/models/OffchainResource.sol";
 
 contract Playground is Script {
     function run() public {
-        ISAP instance = ISAP(0xF1652Cd77b01Adad92456C6a4cf860C4Cc082b8f);
+        ISAP instance = ISAP(0xF7663045Bf818221a72ddd38732Cf76c6b2DF2F5);
         _register(instance);
         _attest0(instance);
         _attest1(instance);
@@ -21,7 +21,7 @@ contract Playground is Script {
         vm.startBroadcast(deployerPrivateKey);
         instance.register(
             "subgraph test schema id 0",
-            URIPointer({dataLocation: DataLocation.ARWEAVE, uri: "5Kek9vNs3Gd7I30wqDq9ANdYPBtM2STi1GasyBWZ_hs"}),
+            SchemaMetadata({dataLocation: DataLocation.ARWEAVE, uri: "5Kek9vNs3Gd7I30wqDq9ANdYPBtM2STi1GasyBWZ_hs"}),
             Schema({
                 revocable: true,
                 dataLocation: DataLocation.ONCHAIN,
@@ -32,7 +32,7 @@ contract Playground is Script {
         );
         instance.register(
             "subgraph test schema id 1",
-            URIPointer({
+            SchemaMetadata({
                 dataLocation: DataLocation.IPFS,
                 uri: "bafkreic6oods6alkjbuyc46x63hpe2tqmerg552x4u5gkqaoaq5zdhkzfm"
             }),
@@ -53,7 +53,7 @@ contract Playground is Script {
         recipients[0] = 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094;
         recipients[1] = 0x003BBE6Da0EB4963856395829030FcE383a14C53;
         Attestation memory attestation = Attestation({
-            schemaId: "test schema id 0",
+            schemaId: "subgraph test schema id 0",
             linkedAttestationId: "",
             data: "some data 0",
             attester: 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094,
@@ -73,7 +73,7 @@ contract Playground is Script {
         recipients[0] = 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094;
         recipients[1] = 0x003BBE6Da0EB4963856395829030FcE383a14C53;
         Attestation memory attestation = Attestation({
-            schemaId: "test schema id 0",
+            schemaId: "subgraph test schema id 0",
             linkedAttestationId: "test attestation id 0",
             data: "some data 1",
             attester: 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094,

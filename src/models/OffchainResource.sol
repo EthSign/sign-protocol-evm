@@ -8,7 +8,7 @@ enum DataLocation {
     CUSTOM
 }
 
-struct URIPointer {
+struct SchemaMetadata {
     DataLocation dataLocation;
     string uri;
 }

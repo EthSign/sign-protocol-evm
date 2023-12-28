@@ -5,7 +5,7 @@ import {ISAP} from "../interfaces/ISAP.sol";
 import {ISAPResolver} from "../interfaces/ISAPResolver.sol";
 import {Schema} from "../models/Schema.sol";
 import {Attestation} from "../models/Attestation.sol";
-import {URIPointer} from "../models/OffchainResource.sol";
+import {SchemaMetadata} from "../models/OffchainResource.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -19,11 +19,14 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         __Ownable_init(_msgSender());
     }
 
-    function register(string calldata schemaId, URIPointer calldata uri, Schema calldata schema) external override {
+    function register(string calldata schemaId, SchemaMetadata calldata uri, Schema calldata schema)
+        external
+        override
+    {
         _register(schemaId, uri, schema);
     }
 
-    function registerBatch(string[] calldata schemaIds, URIPointer[] calldata uris, Schema[] calldata schemas)
+    function registerBatch(string[] calldata schemaIds, SchemaMetadata[] calldata uris, Schema[] calldata schemas)
         external
         override
     {
@@ -217,7 +220,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         return "1.0.0";
     }
 
-    function _register(string calldata schemaId, URIPointer calldata uri, Schema calldata schema) internal {
+    function _register(string calldata schemaId, SchemaMetadata calldata uri, Schema calldata schema) internal {
         Schema memory s = _schemaRegistry[schemaId];
         if (bytes(schemaId).length == 0) revert SchemaIdInvalid();
         if (bytes(s.schema).length != 0) revert SchemaExists(schemaId);
