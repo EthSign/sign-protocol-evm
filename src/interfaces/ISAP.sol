@@ -5,6 +5,7 @@ import {ISAPResolver} from "../interfaces/ISAPResolver.sol";
 import {IVersionable} from "./IVersionable.sol";
 import {Schema} from "../models/Schema.sol";
 import {Attestation} from "../models/Attestation.sol";
+import {DataLocation, URIPointer} from "../models/OffchainResource.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
@@ -12,7 +13,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @author Jack Xu @ EthSign
  */
 interface ISAP is IVersionable {
-    event SchemaRegistered(string schemaId);
+    event SchemaRegistered(string schemaId, DataLocation dataLocation, string uri);
     event AttestationMade(string attestationId);
     event AttestationRevoked(string attestationId, string reason);
     event OffchainAttestationMade(string attestationId);
@@ -28,7 +29,7 @@ interface ISAP is IVersionable {
     error AttestationAlreadyRevoked(string offendingAttestationId);
     error AttestationWrongAttester(address expected, address actual);
 
-    function register(string calldata schemaId, Schema calldata schema) external;
+    function register(string calldata schemaId, URIPointer calldata uri, Schema calldata schema) external;
 
     function attest(string calldata attestationId, Attestation calldata attestation) external;
 
@@ -58,7 +59,8 @@ interface ISAP is IVersionable {
 
     function revokeOffchain(string calldata attestationId, string calldata reason) external;
 
-    function registerBatch(string[] calldata schemaIds, Schema[] calldata schemas) external;
+    function registerBatch(string[] calldata schemaIds, URIPointer[] calldata uris, Schema[] calldata schemas)
+        external;
 
     function attestBatch(string[] calldata attestationIds, Attestation[] calldata attestations) external;
 

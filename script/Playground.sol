@@ -4,8 +4,9 @@ pragma solidity ^0.8.13;
 import {Script, console2} from "forge-std/Script.sol";
 import {ISAP} from "../src/interfaces/ISAP.sol";
 import {ISAPResolver} from "../src/interfaces/ISAPResolver.sol";
-import {Schema, DataLocation} from "../src/models/Schema.sol";
+import {Schema} from "../src/models/Schema.sol";
 import {Attestation} from "../src/models/Attestation.sol";
+import {DataLocation, URIPointer} from "../src/models/OffchainResource.sol";
 
 contract Playground is Script {
     function run() public {
@@ -16,17 +17,33 @@ contract Playground is Script {
     }
 
     function _register(ISAP instance) internal {
-        string memory schemaId = "test schema id 0";
-        Schema memory schema = Schema({
-            revocable: true,
-            dataLocation: DataLocation.ONCHAIN,
-            maxValidFor: 120,
-            resolver: ISAPResolver(address(0)),
-            schema: "test schema 0"
-        });
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-        instance.register(schemaId, schema);
+        instance.register(
+            "subgraph test schema id 0",
+            URIPointer({dataLocation: DataLocation.ARWEAVE, uri: "5Kek9vNs3Gd7I30wqDq9ANdYPBtM2STi1GasyBWZ_hs"}),
+            Schema({
+                revocable: true,
+                dataLocation: DataLocation.ONCHAIN,
+                maxValidFor: 120,
+                resolver: ISAPResolver(address(0)),
+                schema: "subgraph test schema 0"
+            })
+        );
+        instance.register(
+            "subgraph test schema id 1",
+            URIPointer({
+                dataLocation: DataLocation.IPFS,
+                uri: "bafkreic6oods6alkjbuyc46x63hpe2tqmerg552x4u5gkqaoaq5zdhkzfm"
+            }),
+            Schema({
+                revocable: true,
+                dataLocation: DataLocation.ONCHAIN,
+                maxValidFor: 120,
+                resolver: ISAPResolver(address(0)),
+                schema: "subgraph test schema 1"
+            })
+        );
         vm.stopBroadcast();
     }
 

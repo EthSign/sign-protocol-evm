@@ -6,7 +6,8 @@ import "forge-std/console2.sol";
 import {SAP} from "../src/core/SAP.sol";
 import {ISAP} from "../src/interfaces/ISAP.sol";
 import {MockResolver} from "../src/mock/MockResolver.sol";
-import {Schema, DataLocation} from "../src/models/Schema.sol";
+import {Schema} from "../src/models/Schema.sol";
+import {DataLocation, URIPointer} from "../src/models/OffchainResource.sol";
 import {Attestation} from "../src/models/Attestation.sol";
 import {MockERC20} from "../src/mock/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -19,7 +20,7 @@ contract SAPTest is Test {
     address public prankRecipient0 = 0x003BBE6Da0EB4963856395829030FcE383a14C53;
     address public prankRecipient1 = 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045;
 
-    event SchemaRegistered(string schemaId);
+    event SchemaRegistered(string schemaId, DataLocation dataLocation, string uri);
     event AttestationMade(string attestationId);
     event AttestationRevoked(string attestationId, string reason);
     event OffchainAttestationMade(string attestationId);
@@ -42,18 +43,17 @@ contract SAPTest is Test {
     }
 
     function test_register() public {
-        (string[] memory schemaIds, Schema[] memory schemas) = _createMockSchemas();
+        (string[] memory schemaIds, URIPointer[] memory uris, Schema[] memory schemas) = _createMockSchemas();
         // Trigger `SchemaIdInvalid`
         schemaIds[0] = "";
         vm.expectRevert(abi.encodeWithSelector(SchemaIdInvalid.selector));
-        sap.registerBatch(schemaIds, schemas);
+        sap.registerBatch(schemaIds, uris, schemas);
         // Register 2 different schema, check events & storage
-        (schemaIds,) = _createMockSchemas();
+        (schemaIds,,) = _createMockSchemas();
         vm.expectEmit();
-        emit SchemaRegistered(schemaIds[0]);
-        vm.expectEmit();
-        emit SchemaRegistered(schemaIds[1]);
-        sap.registerBatch(schemaIds, schemas);
+        emit SchemaRegistered(schemaIds[0], uris[0].dataLocation, uris[0].uri);
+        emit SchemaRegistered(schemaIds[1], uris[1].dataLocation, uris[1].uri);
+        sap.registerBatch(schemaIds, uris, schemas);
         Schema memory schema0Expected = schemas[0];
         Schema memory schema1Expected = schemas[1];
         Schema memory schema0Actual = sap.getSchema(schemaIds[0]);
@@ -68,13 +68,13 @@ contract SAPTest is Test {
         assertEq(schema1Expected.maxValidFor, schema1Actual.maxValidFor);
         // Register the same schemas with the same IDs, check revert
         vm.expectRevert(abi.encodeWithSelector(SchemaExists.selector, schemaIds[0]));
-        sap.registerBatch(schemaIds, schemas);
+        sap.registerBatch(schemaIds, uris, schemas);
     }
 
     function test_attest() public {
         // Register 2 different schemas
-        (string[] memory schemaIds, Schema[] memory schemas) = _createMockSchemas();
-        sap.registerBatch(schemaIds, schemas);
+        (string[] memory schemaIds, URIPointer[] memory uris, Schema[] memory schemas) = _createMockSchemas();
+        sap.registerBatch(schemaIds, uris, schemas);
         // Create two normal attestations
         (string[] memory attestationIds, Attestation[] memory attestations) = _createMockAttestations(schemaIds);
         // Modify the second one to trigger `AttestationInvalidDuration`
@@ -135,8 +135,8 @@ contract SAPTest is Test {
 
     function test_revokeFail() public {
         // Register 2 different schemas
-        (string[] memory schemaIds, Schema[] memory schemas) = _createMockSchemas();
-        sap.registerBatch(schemaIds, schemas);
+        (string[] memory schemaIds, URIPointer[] memory uris, Schema[] memory schemas) = _createMockSchemas();
+        sap.registerBatch(schemaIds, uris, schemas);
         // Make two normal attestations
         (string[] memory attestationIds, Attestation[] memory attestations) = _createMockAttestations(schemaIds);
         vm.prank(prankSender);
@@ -159,9 +159,9 @@ contract SAPTest is Test {
 
     function test_revoke() public {
         // Register 2 different schemas
-        (string[] memory schemaIds, Schema[] memory schemas) = _createMockSchemas();
+        (string[] memory schemaIds, URIPointer[] memory uris, Schema[] memory schemas) = _createMockSchemas();
         schemas[1].revocable = true;
-        sap.registerBatch(schemaIds, schemas);
+        sap.registerBatch(schemaIds, uris, schemas);
         // Make two normal attestations
         (string[] memory attestationIds, Attestation[] memory attestations) = _createMockAttestations(schemaIds);
         vm.prank(prankSender);
@@ -207,7 +207,7 @@ contract SAPTest is Test {
         sap.revokeOffchainBatch(attestationIds, reasons);
     }
 
-    function _createMockSchemas() internal view returns (string[] memory, Schema[] memory) {
+    function _createMockSchemas() internal view returns (string[] memory, URIPointer[] memory, Schema[] memory) {
         string memory schemaId0 = "schemaId0";
         Schema memory schema0 = Schema({
             revocable: true,
@@ -227,10 +227,13 @@ contract SAPTest is Test {
         string[] memory schemaIds = new string[](2);
         schemaIds[0] = schemaId0;
         schemaIds[1] = schemaId1;
+        URIPointer[] memory uris = new URIPointer[](2);
+        uris[0] = URIPointer({dataLocation: DataLocation.ARWEAVE, uri: "uri0"});
+        uris[1] = URIPointer({dataLocation: DataLocation.IPFS, uri: "uri1"});
         Schema[] memory schemas = new Schema[](2);
         schemas[0] = schema0;
         schemas[1] = schema1;
-        return (schemaIds, schemas);
+        return (schemaIds, uris, schemas);
     }
 
     function _createMockRecipient() internal view returns (address[] memory) {

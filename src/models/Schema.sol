@@ -2,11 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {ISAPResolver} from "../interfaces/ISAPResolver.sol";
-
-enum DataLocation {
-    ONCHAIN,
-    ARWEAVE
-}
+import {DataLocation} from "./OffchainResource.sol";
 
 struct Schema {
     bool revocable;
