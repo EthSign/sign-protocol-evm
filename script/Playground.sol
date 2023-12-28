@@ -2,21 +2,21 @@
 pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {ISAP} from "../src/interfaces/ISAP.sol";
-import {ISAPResolver} from "../src/interfaces/ISAPResolver.sol";
+import {ISP} from "../src/interfaces/ISP.sol";
+import {ISPResolver} from "../src/interfaces/ISPResolver.sol";
 import {Schema} from "../src/models/Schema.sol";
 import {Attestation} from "../src/models/Attestation.sol";
 import {DataLocation, SchemaMetadata} from "../src/models/OffchainResource.sol";
 
 contract Playground is Script {
     function run() public {
-        ISAP instance = ISAP(0xF7663045Bf818221a72ddd38732Cf76c6b2DF2F5);
+        ISP instance = ISP(0xF7663045Bf818221a72ddd38732Cf76c6b2DF2F5);
         _register(instance);
         _attest0(instance);
         _attest1(instance);
     }
 
-    function _register(ISAP instance) internal {
+    function _register(ISP instance) internal {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
         instance.register(
@@ -26,7 +26,7 @@ contract Playground is Script {
                 revocable: true,
                 dataLocation: DataLocation.ONCHAIN,
                 maxValidFor: 120,
-                resolver: ISAPResolver(address(0)),
+                resolver: ISPResolver(address(0)),
                 schema: "subgraph test schema 0"
             })
         );
@@ -40,14 +40,14 @@ contract Playground is Script {
                 revocable: true,
                 dataLocation: DataLocation.ONCHAIN,
                 maxValidFor: 120,
-                resolver: ISAPResolver(address(0)),
+                resolver: ISPResolver(address(0)),
                 schema: "subgraph test schema 1"
             })
         );
         vm.stopBroadcast();
     }
 
-    function _attest0(ISAP instance) internal {
+    function _attest0(ISP instance) internal {
         string memory attestationId = "test attestation id 0";
         address[] memory recipients = new address[](2);
         recipients[0] = 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094;
@@ -67,7 +67,7 @@ contract Playground is Script {
         vm.stopBroadcast();
     }
 
-    function _attest1(ISAP instance) internal {
+    function _attest1(ISP instance) internal {
         string memory attestationId = "test attestation id 1";
         address[] memory recipients = new address[](2);
         recipients[0] = 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094;

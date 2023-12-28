@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {ISAP} from "../interfaces/ISAP.sol";
-import {ISAPResolver, IERC20} from "../interfaces/ISAPResolver.sol";
+import {ISP} from "../interfaces/ISP.sol";
+import {ISPResolver, IERC20} from "../interfaces/ISPResolver.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -63,7 +63,7 @@ contract MockResolverAdmin is OwnableUpgradeable {
     }
 }
 
-contract MockResolver is ISAPResolver, MockResolverAdmin {
+contract MockResolver is ISPResolver, MockResolverAdmin {
     function didReceiveAttestation(address attester, string calldata schemaId, string calldata attestationId)
         external
         payable

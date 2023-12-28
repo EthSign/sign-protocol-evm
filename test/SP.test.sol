@@ -3,8 +3,8 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "forge-std/console2.sol";
-import {SAP} from "../src/core/SAP.sol";
-import {ISAP} from "../src/interfaces/ISAP.sol";
+import {SP} from "../src/core/SP.sol";
+import {ISP} from "../src/interfaces/ISP.sol";
 import {MockResolver} from "../src/mock/MockResolver.sol";
 import {Schema} from "../src/models/Schema.sol";
 import {DataLocation, SchemaMetadata} from "../src/models/OffchainResource.sol";
@@ -12,8 +12,8 @@ import {Attestation} from "../src/models/Attestation.sol";
 import {MockERC20} from "../src/mock/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract SAPTest is Test {
-    ISAP public sap;
+contract SPTest is Test {
+    ISP public sap;
     MockResolver public mockResolver;
     MockERC20 public mockERC20;
     address public prankSender = 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094;
@@ -37,7 +37,7 @@ contract SAPTest is Test {
     error AttestationWrongAttester(address expected, address actual);
 
     function setUp() public {
-        sap = new SAP();
+        sap = new SP();
         mockResolver = new MockResolver();
         mockERC20 = new MockERC20();
     }

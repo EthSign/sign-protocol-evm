@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {ISAP} from "../interfaces/ISAP.sol";
-import {ISAPResolver} from "../interfaces/ISAPResolver.sol";
+import {ISP} from "../interfaces/ISP.sol";
+import {ISPResolver} from "../interfaces/ISPResolver.sol";
 import {Schema} from "../models/Schema.sol";
 import {Attestation} from "../models/Attestation.sol";
 import {SchemaMetadata} from "../models/OffchainResource.sol";
@@ -10,7 +10,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
+contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     mapping(string => Schema) internal _schemaRegistry;
     mapping(string => Attestation) internal _attestationRegistry;
     mapping(string => uint256) internal _offchainAttestationRegistry;
@@ -37,14 +37,14 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
 
     function attest(string calldata attestationId, Attestation calldata attestation) external override {
         string memory schemaId = _attest(attestationId, attestation);
-        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) resolver.didReceiveAttestation(_msgSender(), schemaId, attestationId);
     }
 
     function attestBatch(string[] calldata attestationIds, Attestation[] calldata attestations) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _attest(attestationIds[i], attestations[i]);
-            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveAttestation(_msgSender(), schemaId, attestationIds[i]);
             }
@@ -56,7 +56,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         payable
     {
         string memory schemaId = _attest(attestationId, attestation);
-        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveAttestation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
         }
@@ -69,7 +69,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     ) external payable override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _attest(attestationIds[i], attestations[i]);
-            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveAttestation{value: resolverFeesETH[i]}(_msgSender(), schemaId, attestationIds[i]);
             }
@@ -83,7 +83,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         uint256 resolverFeesERC20Amount
     ) external override {
         string memory schemaId = _attest(attestationId, attestation);
-        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveAttestation(
                 _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount
@@ -99,7 +99,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     ) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _attest(attestationIds[i], attestations[i]);
-            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveAttestation(
                     _msgSender(), schemaId, attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
@@ -120,7 +120,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
 
     function revoke(string calldata attestationId, string calldata reason) external override {
         string memory schemaId = _revoke(attestationId, reason);
-        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveRevocation(_msgSender(), schemaId, attestationId);
         }
@@ -129,7 +129,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     function revokeBatch(string[] calldata attestationIds, string[] calldata reasons) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _revoke(attestationIds[i], reasons[i]);
-            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveRevocation(_msgSender(), schemaId, attestationIds[i]);
             }
@@ -142,7 +142,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         override
     {
         string memory schemaId = _revoke(attestationId, reason);
-        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveRevocation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
         }
@@ -155,7 +155,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     ) external payable override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _revoke(attestationIds[i], reasons[i]);
-            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveRevocation{value: resolverFeesETH[i]}(_msgSender(), schemaId, attestationIds[i]);
             }
@@ -169,7 +169,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
         uint256 resolverFeesERC20Amount
     ) external override {
         string memory schemaId = _revoke(attestationId, reason);
-        ISAPResolver resolver = __getResolverFromAttestationId(attestationId);
+        ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveRevocation(
                 _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount
@@ -185,7 +185,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
     ) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             string memory schemaId = _revoke(attestationIds[i], reasons[i]);
-            ISAPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+            ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveRevocation(
                     _msgSender(), schemaId, attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
@@ -285,7 +285,7 @@ contract SAP is ISAP, UUPSUpgradeable, OwnableUpgradeable {
 
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
 
-    function __getResolverFromAttestationId(string calldata attestationId) internal view returns (ISAPResolver) {
+    function __getResolverFromAttestationId(string calldata attestationId) internal view returns (ISPResolver) {
         Attestation memory a = _attestationRegistry[attestationId];
         Schema memory s = _schemaRegistry[a.schemaId];
         return s.resolver;

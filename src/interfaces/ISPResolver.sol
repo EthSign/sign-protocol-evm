@@ -7,7 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @title SIGN Attestation Protocol Resolver Interface
  * @author Jack Xu @ EthSign
  */
-interface ISAPResolver {
+interface ISPResolver {
     function didReceiveAttestation(address attester, string calldata schemaId, string calldata attestationId)
         external
         payable;
