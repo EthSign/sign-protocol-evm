@@ -2,11 +2,11 @@
 pragma solidity ^0.8.20;
 
 struct Attestation {
-    string schemaId;
-    string linkedAttestationId;
-    string data;
+    uint256 schemaId;
+    uint256 linkedAttestationId;
     address attester;
     uint64 validUntil;
     bool revoked;
     address[] recipients;
+    string data;
 }

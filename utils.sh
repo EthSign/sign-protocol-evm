@@ -25,6 +25,6 @@ case "$1" in
   "--help") echo "$help_string" ;;
   "test:local") forge test ;;
   "coverage:integration") forge coverage --match-path "./src/*.sol" --report lcov --report summary ;;
-  "deploy:polygon-mumbai") source .env && forge script SAPDeploymentScript --ffi --chain-id 80001 --rpc-url $MUMBAI_RPC_URL --broadcast --verify --etherscan-api-key $POLYGONSCAN_API_KEY -vvv ;;
+  "deploy:polygon-mumbai") source .env && forge script SPDeploymentScript --ffi --chain-id 80001 --rpc-url $MUMBAI_RPC_URL --broadcast --verify --etherscan-api-key $POLYGONSCAN_API_KEY -vvv ;;
   *) echo "Invalid command: $1" ;;
 esac

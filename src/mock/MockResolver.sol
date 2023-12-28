@@ -9,14 +9,14 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 contract MockResolverAdmin is OwnableUpgradeable {
     using SafeERC20 for IERC20;
 
-    mapping(string => uint256) public schemaAttestETHFees;
-    mapping(string => mapping(IERC20 => uint256)) public schemaAttestTokenFees;
-    mapping(string => uint256) public attestationETHFees;
-    mapping(string => mapping(IERC20 => uint256)) public attestationTokenFees;
+    mapping(uint256 => uint256) public schemaAttestETHFees;
+    mapping(uint256 => mapping(IERC20 => uint256)) public schemaAttestTokenFees;
+    mapping(uint256 => uint256) public attestationETHFees;
+    mapping(uint256 => mapping(IERC20 => uint256)) public attestationTokenFees;
     mapping(IERC20 => bool) public approvedTokens;
 
-    event ETHFeesReceived(string attestationId, uint256 amount);
-    event TokenFeesReceived(string attestationId, IERC20 token, uint256 amount);
+    event ETHFeesReceived(uint256 attestationId, uint256 amount);
+    event TokenFeesReceived(uint256 attestationId, IERC20 token, uint256 amount);
 
     error MismatchETHFee();
     error InsufficientETHFee();
@@ -27,11 +27,11 @@ contract MockResolverAdmin is OwnableUpgradeable {
         __Ownable_init(_msgSender());
     }
 
-    function setSchemaAttestETHFees(string calldata schemaId, uint256 fees) external onlyOwner {
+    function setSchemaAttestETHFees(uint256 schemaId, uint256 fees) external onlyOwner {
         schemaAttestETHFees[schemaId] = fees;
     }
 
-    function setSchemaAttestTokenFees(string calldata schemaId, IERC20 token, uint256 fees) external onlyOwner {
+    function setSchemaAttestTokenFees(uint256 schemaId, IERC20 token, uint256 fees) external onlyOwner {
         schemaAttestTokenFees[schemaId][token] = fees;
     }
 
@@ -39,8 +39,9 @@ contract MockResolverAdmin is OwnableUpgradeable {
         approvedTokens[token] = approved;
     }
 
-    function _receiveEther(address attester, string memory schemaId, string calldata attestationId) internal {
-        uint256 fees = bytes(schemaId).length == 0 ? attestationETHFees[attestationId] : schemaAttestETHFees[schemaId];
+    function _receiveEther(address attester, uint256 schemaId, uint256 attestationId) internal {
+        uint256 fees =
+            schemaAttestETHFees[schemaId] == 0 ? attestationETHFees[attestationId] : schemaAttestETHFees[schemaId];
         if (msg.value != fees) revert InsufficientETHFee();
         emit ETHFeesReceived(attestationId, msg.value);
         attester;
@@ -48,13 +49,13 @@ contract MockResolverAdmin is OwnableUpgradeable {
 
     function _receiveTokens(
         address attester,
-        string memory schemaId,
-        string calldata attestationId,
+        uint256 schemaId,
+        uint256 attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount
     ) internal {
         if (!approvedTokens[resolverFeeERC20Token]) revert UnapprovedToken();
-        uint256 fees = bytes(schemaId).length == 0
+        uint256 fees = schemaAttestTokenFees[schemaId][resolverFeeERC20Token] == 0
             ? attestationTokenFees[attestationId][resolverFeeERC20Token]
             : schemaAttestTokenFees[schemaId][resolverFeeERC20Token];
         if (resolverFeeERC20Amount != fees) revert InsufficientTokenFee();
@@ -64,7 +65,7 @@ contract MockResolverAdmin is OwnableUpgradeable {
 }
 
 contract MockResolver is ISPResolver, MockResolverAdmin {
-    function didReceiveAttestation(address attester, string calldata schemaId, string calldata attestationId)
+    function didReceiveAttestation(address attester, uint256 schemaId, uint256 attestationId)
         external
         payable
         override
@@ -72,15 +73,15 @@ contract MockResolver is ISPResolver, MockResolverAdmin {
 
     function didReceiveAttestation(
         address attester,
-        string calldata schemaId,
-        string calldata attestationId,
+        uint256 schemaId,
+        uint256 attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount
     ) external override {
         _receiveTokens(attester, schemaId, attestationId, resolverFeeERC20Token, resolverFeeERC20Amount);
     }
 
-    function didReceiveRevocation(address attester, string calldata schemaId, string calldata attestationId)
+    function didReceiveRevocation(address attester, uint256 schemaId, uint256 attestationId)
         external
         payable
         override
@@ -90,8 +91,8 @@ contract MockResolver is ISPResolver, MockResolverAdmin {
 
     function didReceiveRevocation(
         address attester,
-        string calldata schemaId,
-        string calldata attestationId,
+        uint256 schemaId,
+        uint256 attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount
     ) external override {

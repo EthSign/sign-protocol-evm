@@ -11,98 +11,120 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
-    mapping(string => Schema) internal _schemaRegistry;
-    mapping(string => Attestation) internal _attestationRegistry;
+    mapping(uint256 => Schema) internal _schemaRegistry;
+    mapping(uint256 => Attestation) internal _attestationRegistry;
     mapping(string => uint256) internal _offchainAttestationRegistry;
+
+    uint256 public override schemaCounter;
+    uint256 public override attestationCounter;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
 
     function initialize() external initializer {
         __Ownable_init(_msgSender());
+        schemaCounter = 1;
+        attestationCounter = 1;
     }
 
-    function register(string calldata schemaId, SchemaMetadata calldata uri, Schema calldata schema)
+    function register(SchemaMetadata calldata uri, Schema calldata schema)
         external
         override
+        returns (uint256 schemaId)
     {
-        _register(schemaId, uri, schema);
+        return _register(uri, schema);
     }
 
-    function registerBatch(string[] calldata schemaIds, SchemaMetadata[] calldata uris, Schema[] calldata schemas)
+    function registerBatch(SchemaMetadata[] calldata uris, Schema[] calldata schemas)
         external
         override
+        returns (uint256[] memory schemaIds)
     {
-        for (uint256 i = 0; i < schemaIds.length; i++) {
-            _register(schemaIds[i], uris[i], schemas[i]);
+        schemaIds = new uint256[](schemas.length);
+        for (uint256 i = 0; i < schemas.length; i++) {
+            schemaIds[i] = _register(uris[i], schemas[i]);
         }
     }
 
-    function attest(string calldata attestationId, Attestation calldata attestation) external override {
-        string memory schemaId = _attest(attestationId, attestation);
+    function attest(Attestation calldata attestation) external override returns (uint256) {
+        (uint256 schemaId, uint256 attestationId) = _attest(attestation);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) resolver.didReceiveAttestation(_msgSender(), schemaId, attestationId);
+        return attestationId;
     }
 
-    function attestBatch(string[] calldata attestationIds, Attestation[] calldata attestations) external override {
-        for (uint256 i = 0; i < attestationIds.length; i++) {
-            string memory schemaId = _attest(attestationIds[i], attestations[i]);
-            ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+    function attestBatch(Attestation[] calldata attestations)
+        external
+        override
+        returns (uint256[] memory attestationIds)
+    {
+        attestationIds = new uint256[](attestations.length);
+        for (uint256 i = 0; i < attestations.length; i++) {
+            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i]);
+            attestationIds[i] = attestationId;
+            ISPResolver resolver = __getResolverFromAttestationId(attestationId);
             if (address(resolver) != address(0)) {
-                resolver.didReceiveAttestation(_msgSender(), schemaId, attestationIds[i]);
+                resolver.didReceiveAttestation(_msgSender(), schemaId, attestationId);
             }
         }
     }
 
-    function attest(string calldata attestationId, Attestation calldata attestation, uint256 resolverFeesETH)
-        external
-        payable
-    {
-        string memory schemaId = _attest(attestationId, attestation);
+    function attest(Attestation calldata attestation, uint256 resolverFeesETH) external payable returns (uint256) {
+        (uint256 schemaId, uint256 attestationId) = _attest(attestation);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveAttestation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
         }
+        return attestationId;
     }
 
-    function attestBatch(
-        string[] calldata attestationIds,
-        Attestation[] calldata attestations,
-        uint256[] calldata resolverFeesETH
-    ) external payable override {
-        for (uint256 i = 0; i < attestationIds.length; i++) {
-            string memory schemaId = _attest(attestationIds[i], attestations[i]);
-            ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+    function attestBatch(Attestation[] calldata attestations, uint256[] calldata resolverFeesETH)
+        external
+        payable
+        override
+        returns (uint256[] memory attestationIds)
+    {
+        attestationIds = new uint256[](attestations.length);
+        for (uint256 i = 0; i < attestations.length; i++) {
+            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i]);
+            attestationIds[i] = attestationId;
+            ISPResolver resolver = __getResolverFromAttestationId(attestationId);
             if (address(resolver) != address(0)) {
-                resolver.didReceiveAttestation{value: resolverFeesETH[i]}(_msgSender(), schemaId, attestationIds[i]);
+                resolver.didReceiveAttestation{value: resolverFeesETH[i]}(_msgSender(), schemaId, attestationId);
             }
         }
     }
 
-    function attest(
-        string calldata attestationId,
-        Attestation calldata attestation,
-        IERC20 resolverFeesERC20Token,
-        uint256 resolverFeesERC20Amount
-    ) external override {
-        string memory schemaId = _attest(attestationId, attestation);
+    function attest(Attestation calldata attestation, IERC20 resolverFeesERC20Token, uint256 resolverFeesERC20Amount)
+        external
+        override
+        returns (uint256)
+    {
+        (uint256 schemaId, uint256 attestationId) = _attest(attestation);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveAttestation(
                 _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount
             );
         }
+        return attestationId;
     }
 
     function attestBatch(
-        string[] calldata attestationIds,
         Attestation[] calldata attestations,
         IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount
-    ) external override {
-        for (uint256 i = 0; i < attestationIds.length; i++) {
-            string memory schemaId = _attest(attestationIds[i], attestations[i]);
-            ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
+    ) external override returns (uint256[] memory attestationIds) {
+        attestationIds = new uint256[](attestations.length);
+        for (uint256 i = 0; i < attestations.length; i++) {
+            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i]);
+            attestationIds[i] = attestationId;
+            ISPResolver resolver = __getResolverFromAttestationId(attestationId);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveAttestation(
-                    _msgSender(), schemaId, attestationIds[i], resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
+                    _msgSender(), schemaId, attestationId, resolverFeesERC20Tokens[i], resolverFeesERC20Amount[i]
                 );
             }
         }
@@ -118,17 +140,17 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function revoke(string calldata attestationId, string calldata reason) external override {
-        string memory schemaId = _revoke(attestationId, reason);
+    function revoke(uint256 attestationId, string calldata reason) external override {
+        uint256 schemaId = _revoke(attestationId, reason);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveRevocation(_msgSender(), schemaId, attestationId);
         }
     }
 
-    function revokeBatch(string[] calldata attestationIds, string[] calldata reasons) external override {
+    function revokeBatch(uint256[] calldata attestationIds, string[] calldata reasons) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            string memory schemaId = _revoke(attestationIds[i], reasons[i]);
+            uint256 schemaId = _revoke(attestationIds[i], reasons[i]);
             ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveRevocation(_msgSender(), schemaId, attestationIds[i]);
@@ -136,12 +158,8 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function revoke(string calldata attestationId, string calldata reason, uint256 resolverFeesETH)
-        external
-        payable
-        override
-    {
-        string memory schemaId = _revoke(attestationId, reason);
+    function revoke(uint256 attestationId, string calldata reason, uint256 resolverFeesETH) external payable override {
+        uint256 schemaId = _revoke(attestationId, reason);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveRevocation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
@@ -149,12 +167,12 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function revokeBatch(
-        string[] calldata attestationIds,
+        uint256[] calldata attestationIds,
         string[] calldata reasons,
         uint256[] calldata resolverFeesETH
     ) external payable override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            string memory schemaId = _revoke(attestationIds[i], reasons[i]);
+            uint256 schemaId = _revoke(attestationIds[i], reasons[i]);
             ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveRevocation{value: resolverFeesETH[i]}(_msgSender(), schemaId, attestationIds[i]);
@@ -163,12 +181,12 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function revoke(
-        string calldata attestationId,
+        uint256 attestationId,
         string calldata reason,
         IERC20 resolverFeesERC20Token,
         uint256 resolverFeesERC20Amount
     ) external override {
-        string memory schemaId = _revoke(attestationId, reason);
+        uint256 schemaId = _revoke(attestationId, reason);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveRevocation(
@@ -178,13 +196,13 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function revokeBatch(
-        string[] calldata attestationIds,
+        uint256[] calldata attestationIds,
         string[] calldata reasons,
         IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount
     ) external override {
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            string memory schemaId = _revoke(attestationIds[i], reasons[i]);
+            uint256 schemaId = _revoke(attestationIds[i], reasons[i]);
             ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveRevocation(
@@ -204,11 +222,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function getSchema(string calldata schemaId) external view override returns (Schema memory) {
+    function getSchema(uint256 schemaId) external view override returns (Schema memory) {
         return _schemaRegistry[schemaId];
     }
 
-    function getAttestation(string calldata attestationId) external view override returns (Attestation memory) {
+    function getAttestation(uint256 attestationId) external view override returns (Attestation memory) {
         return _attestationRegistry[attestationId];
     }
 
@@ -220,33 +238,28 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return "1.0.0";
     }
 
-    function _register(string calldata schemaId, SchemaMetadata calldata uri, Schema calldata schema) internal {
-        Schema memory s = _schemaRegistry[schemaId];
-        if (bytes(schemaId).length == 0) revert SchemaIdInvalid();
-        if (bytes(s.schema).length != 0) revert SchemaExists(schemaId);
+    function _register(SchemaMetadata calldata uri, Schema calldata schema) internal returns (uint256 schemaId) {
+        schemaId = schemaCounter++;
         _schemaRegistry[schemaId] = schema;
         emit SchemaRegistered(schemaId, uri.dataLocation, uri.uri);
     }
 
-    function _attest(string calldata attestationId, Attestation calldata attestation)
-        internal
-        returns (string memory schemaId)
-    {
-        Attestation memory a = _attestationRegistry[attestationId];
-        if (a.attester != address(0)) revert AttestationExists(attestationId);
+    function _attest(Attestation calldata attestation) internal returns (uint256 schemaId, uint256 attestationId) {
+        attestationId = attestationCounter++;
         if (attestation.attester != _msgSender()) revert AttestationWrongAttester(attestation.attester, _msgSender());
-        if (
-            bytes(attestation.linkedAttestationId).length > 0
-                && bytes(_attestationRegistry[attestation.linkedAttestationId].schemaId).length == 0
-        ) {
+        if (attestation.linkedAttestationId > 0 && !__attestationExists(attestation.linkedAttestationId, true)) {
             revert AttestationNonexistent(attestation.linkedAttestationId);
         }
         if (
-            bytes(attestation.linkedAttestationId).length > 0
+            attestation.linkedAttestationId != 0
                 && _attestationRegistry[attestation.linkedAttestationId].attester != _msgSender()
-        ) revert AttestationWrongAttester(_attestationRegistry[attestation.linkedAttestationId].attester, _msgSender());
+        ) {
+            revert AttestationWrongAttester(
+                _attestationRegistry[attestation.linkedAttestationId].attester, _msgSender()
+            );
+        }
         Schema memory s = _schemaRegistry[attestation.schemaId];
-        if (bytes(s.schema).length == 0) revert SchemaNonexistent(attestation.schemaId);
+        if (!__schemaExists(attestation.schemaId, false)) revert SchemaNonexistent(attestation.schemaId);
         if (s.maxValidFor > 0) {
             uint256 attestationValidFor = attestation.validUntil - block.timestamp;
             if (s.maxValidFor < attestationValidFor) {
@@ -255,16 +268,16 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
         _attestationRegistry[attestationId] = attestation;
         emit AttestationMade(attestationId);
-        return attestation.schemaId;
+        return (attestation.schemaId, attestationId);
     }
 
     function _attestOffchain(string calldata attestationId) internal {
-        if (_offchainAttestationRegistry[attestationId] != 0) revert AttestationExists(attestationId);
+        if (_offchainAttestationRegistry[attestationId] != 0) revert OffchainAttestationExists(attestationId);
         _offchainAttestationRegistry[attestationId] = block.timestamp;
         emit OffchainAttestationMade(attestationId);
     }
 
-    function _revoke(string calldata attestationId, string calldata reason) internal returns (string memory schemaId) {
+    function _revoke(uint256 attestationId, string calldata reason) internal returns (uint256 schemaId) {
         Attestation storage a = _attestationRegistry[attestationId];
         if (a.attester == address(0)) revert AttestationNonexistent(attestationId);
         if (a.attester != _msgSender()) revert AttestationWrongAttester(a.attester, _msgSender());
@@ -277,17 +290,25 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function _revokeOffchain(string calldata attestationId, string calldata reason) internal {
-        if (_offchainAttestationRegistry[attestationId] == 0) revert AttestationNonexistent(attestationId);
-        if (_offchainAttestationRegistry[attestationId] == 1) revert AttestationAlreadyRevoked(attestationId);
+        if (_offchainAttestationRegistry[attestationId] == 0) revert OffchainAttestationNonexistent(attestationId);
+        if (_offchainAttestationRegistry[attestationId] == 1) revert OffchainAttestationAlreadyRevoked(attestationId);
         _offchainAttestationRegistry[attestationId] = 1;
         emit OffchainAttestationRevoked(attestationId, reason);
     }
 
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
 
-    function __getResolverFromAttestationId(string calldata attestationId) internal view returns (ISPResolver) {
+    function __getResolverFromAttestationId(uint256 attestationId) internal view returns (ISPResolver) {
         Attestation memory a = _attestationRegistry[attestationId];
         Schema memory s = _schemaRegistry[a.schemaId];
         return s.resolver;
+    }
+
+    function __schemaExists(uint256 schemaId, bool didIncrement) internal view returns (bool) {
+        return schemaId < schemaCounter - (didIncrement ? 1 : 0);
+    }
+
+    function __attestationExists(uint256 attestationId, bool didIncrement) internal view returns (bool) {
+        return attestationId < attestationCounter - (didIncrement ? 1 : 0);
     }
 }
