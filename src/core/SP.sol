@@ -20,7 +20,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
-        _disableInitializers();
+        if (block.chainid != 31337) {
+            _disableInitializers();
+        }
     }
 
     function initialize() external initializer {
