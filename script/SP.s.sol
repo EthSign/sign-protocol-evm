@@ -13,7 +13,9 @@ contract SPDeploymentScript is Script {
     function _deploy() internal {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-        Upgrades.deployUUPSProxy("SP.sol", abi.encodeCall(SP.initialize, ()));
+        address proxy = Upgrades.deployUUPSProxy("SP.sol", abi.encodeCall(SP.initialize, ()));
+        console2.log("PROXY:");
+        console2.log(proxy);
         vm.stopBroadcast();
     }
 
