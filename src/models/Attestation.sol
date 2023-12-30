@@ -8,5 +8,5 @@ struct Attestation {
     uint64 validUntil;
     bool revoked;
     address[] recipients;
-    string data;
+    bytes data;
 }
