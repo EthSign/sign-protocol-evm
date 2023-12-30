@@ -11,7 +11,7 @@ import {DataLocation, SchemaMetadata} from "../src/models/OffchainResource.sol";
 
 contract Playground is Script {
     function run() public {
-        ISP instance = ISP(0xBA605BBD2f32F4DC726d2d8d14c470064a482850);
+        ISP instance = ISP(0x5A714Fe8F7e73006F8d79443f399A2231A05295F);
         _register(instance);
         _attest0(instance);
         _attest1(instance);

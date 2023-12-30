@@ -26,5 +26,6 @@ case "$1" in
   "test:local") forge test ;;
   "coverage:integration") forge coverage --match-path "./src/*.sol" --report lcov --report summary ;;
   "deploy:polygon-mumbai") source .env && forge script SPDeploymentScript --ffi --chain-id 80001 --rpc-url $MUMBAI_RPC_URL --broadcast --verify --etherscan-api-key $POLYGONSCAN_API_KEY -vvv ;;
+  "mock:polygon-mumbai") source .env && forge script Playground --chain-id 80001 --rpc-url $MUMBAI_RPC_URL --broadcast -vvv ;;
   *) echo "Invalid command: $1" ;;
 esac
