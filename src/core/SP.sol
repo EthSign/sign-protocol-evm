@@ -11,12 +11,23 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
-    mapping(uint256 => Schema) internal _schemaRegistry;
-    mapping(uint256 => Attestation) internal _attestationRegistry;
-    mapping(string => uint256) internal _offchainAttestationRegistry;
+    /// @custom:storage-location erc7201:ethsign.SP
+    struct SPStorage {
+        mapping(uint256 => Schema) _schemaRegistry;
+        mapping(uint256 => Attestation) _attestationRegistry;
+        mapping(string => uint256) _offchainAttestationRegistry;
+        uint256 schemaCounter;
+        uint256 attestationCounter;
+    }
 
-    uint256 public override schemaCounter;
-    uint256 public override attestationCounter;
+    // keccak256(abi.encode(uint256(keccak256("ethsign.SP")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SPStorageLocation = 0x9f5ee6fb062129ebe4f4f93ab4866ee289599fbb940712219d796d503e3bd400;
+
+    function _getSPStorage() internal pure returns (SPStorage storage $) {
+        assembly {
+            $.slot := SPStorageLocation
+        }
+    }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -26,9 +37,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function initialize() external initializer {
+        SPStorage storage $ = _getSPStorage();
         __Ownable_init(_msgSender());
-        schemaCounter = 1;
-        attestationCounter = 1;
+        $.schemaCounter = 1;
+        $.attestationCounter = 1;
     }
 
     function register(SchemaMetadata calldata uri, Schema calldata schema)
@@ -225,15 +237,23 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function getSchema(uint256 schemaId) external view override returns (Schema memory) {
-        return _schemaRegistry[schemaId];
+        return _getSPStorage()._schemaRegistry[schemaId];
     }
 
     function getAttestation(uint256 attestationId) external view override returns (Attestation memory) {
-        return _attestationRegistry[attestationId];
+        return _getSPStorage()._attestationRegistry[attestationId];
     }
 
     function getOffchainAttestation(string calldata attestationId) external view returns (uint256 timestamp) {
-        return _offchainAttestationRegistry[attestationId];
+        return _getSPStorage()._offchainAttestationRegistry[attestationId];
+    }
+
+    function schemaCounter() external view override returns (uint256) {
+        return _getSPStorage().schemaCounter;
+    }
+
+    function attestationCounter() external view override returns (uint256) {
+        return _getSPStorage().attestationCounter;
     }
 
     function version() external pure override returns (string memory) {
@@ -241,26 +261,28 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function _register(SchemaMetadata calldata uri, Schema calldata schema) internal returns (uint256 schemaId) {
-        schemaId = schemaCounter++;
-        _schemaRegistry[schemaId] = schema;
+        SPStorage storage $ = _getSPStorage();
+        schemaId = $.schemaCounter++;
+        $._schemaRegistry[schemaId] = schema;
         emit SchemaRegistered(schemaId, uri.dataLocation, uri.uri);
     }
 
     function _attest(Attestation calldata attestation) internal returns (uint256 schemaId, uint256 attestationId) {
-        attestationId = attestationCounter++;
+        SPStorage storage $ = _getSPStorage();
+        attestationId = $.attestationCounter++;
         if (attestation.attester != _msgSender()) revert AttestationWrongAttester(attestation.attester, _msgSender());
         if (attestation.linkedAttestationId > 0 && !__attestationExists(attestation.linkedAttestationId, true)) {
             revert AttestationNonexistent(attestation.linkedAttestationId);
         }
         if (
             attestation.linkedAttestationId != 0
-                && _attestationRegistry[attestation.linkedAttestationId].attester != _msgSender()
+                && $._attestationRegistry[attestation.linkedAttestationId].attester != _msgSender()
         ) {
             revert AttestationWrongAttester(
-                _attestationRegistry[attestation.linkedAttestationId].attester, _msgSender()
+                $._attestationRegistry[attestation.linkedAttestationId].attester, _msgSender()
             );
         }
-        Schema memory s = _schemaRegistry[attestation.schemaId];
+        Schema memory s = $._schemaRegistry[attestation.schemaId];
         if (!__schemaExists(attestation.schemaId, false)) revert SchemaNonexistent(attestation.schemaId);
         if (s.maxValidFor > 0) {
             uint256 attestationValidFor = attestation.validUntil - block.timestamp;
@@ -268,22 +290,24 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 revert AttestationInvalidDuration(attestationId, s.maxValidFor, uint64(attestationValidFor));
             }
         }
-        _attestationRegistry[attestationId] = attestation;
+        $._attestationRegistry[attestationId] = attestation;
         emit AttestationMade(attestationId);
         return (attestation.schemaId, attestationId);
     }
 
     function _attestOffchain(string calldata attestationId) internal {
-        if (_offchainAttestationRegistry[attestationId] != 0) revert OffchainAttestationExists(attestationId);
-        _offchainAttestationRegistry[attestationId] = block.timestamp;
+        SPStorage storage $ = _getSPStorage();
+        if ($._offchainAttestationRegistry[attestationId] != 0) revert OffchainAttestationExists(attestationId);
+        $._offchainAttestationRegistry[attestationId] = block.timestamp;
         emit OffchainAttestationMade(attestationId);
     }
 
     function _revoke(uint256 attestationId, string calldata reason) internal returns (uint256 schemaId) {
-        Attestation storage a = _attestationRegistry[attestationId];
+        SPStorage storage $ = _getSPStorage();
+        Attestation storage a = $._attestationRegistry[attestationId];
         if (a.attester == address(0)) revert AttestationNonexistent(attestationId);
         if (a.attester != _msgSender()) revert AttestationWrongAttester(a.attester, _msgSender());
-        Schema memory s = _schemaRegistry[a.schemaId];
+        Schema memory s = $._schemaRegistry[a.schemaId];
         if (!s.revocable) revert AttestationIrrevocable(a.schemaId, attestationId);
         if (a.revoked) revert AttestationAlreadyRevoked(attestationId);
         a.revoked = true;
@@ -292,25 +316,29 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function _revokeOffchain(string calldata attestationId, string calldata reason) internal {
-        if (_offchainAttestationRegistry[attestationId] == 0) revert OffchainAttestationNonexistent(attestationId);
-        if (_offchainAttestationRegistry[attestationId] == 1) revert OffchainAttestationAlreadyRevoked(attestationId);
-        _offchainAttestationRegistry[attestationId] = 1;
+        SPStorage storage $ = _getSPStorage();
+        if ($._offchainAttestationRegistry[attestationId] == 0) revert OffchainAttestationNonexistent(attestationId);
+        if ($._offchainAttestationRegistry[attestationId] == 1) revert OffchainAttestationAlreadyRevoked(attestationId);
+        $._offchainAttestationRegistry[attestationId] = 1;
         emit OffchainAttestationRevoked(attestationId, reason);
     }
 
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
 
     function __getResolverFromAttestationId(uint256 attestationId) internal view returns (ISPResolver) {
-        Attestation memory a = _attestationRegistry[attestationId];
-        Schema memory s = _schemaRegistry[a.schemaId];
+        SPStorage storage $ = _getSPStorage();
+        Attestation memory a = $._attestationRegistry[attestationId];
+        Schema memory s = $._schemaRegistry[a.schemaId];
         return s.resolver;
     }
 
     function __schemaExists(uint256 schemaId, bool didIncrement) internal view returns (bool) {
-        return schemaId < schemaCounter - (didIncrement ? 1 : 0);
+        SPStorage storage $ = _getSPStorage();
+        return schemaId < $.schemaCounter - (didIncrement ? 1 : 0);
     }
 
     function __attestationExists(uint256 attestationId, bool didIncrement) internal view returns (bool) {
-        return attestationId < attestationCounter - (didIncrement ? 1 : 0);
+        SPStorage storage $ = _getSPStorage();
+        return attestationId < $.attestationCounter - (didIncrement ? 1 : 0);
     }
 }
