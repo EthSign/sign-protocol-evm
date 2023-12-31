@@ -10,3 +10,8 @@ struct Attestation {
     address[] recipients;
     bytes data;
 }
+
+struct OffchainAttestation {
+    address attester;
+    uint64 timestamp;
+}

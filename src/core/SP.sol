@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {ISP} from "../interfaces/ISP.sol";
 import {ISPResolver} from "../interfaces/ISPResolver.sol";
 import {Schema} from "../models/Schema.sol";
-import {Attestation} from "../models/Attestation.sol";
+import {Attestation, OffchainAttestation} from "../models/Attestation.sol";
 import {SchemaMetadata} from "../models/OffchainResource.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -15,7 +15,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     struct SPStorage {
         mapping(uint256 => Schema) _schemaRegistry;
         mapping(uint256 => Attestation) _attestationRegistry;
-        mapping(string => uint256) _offchainAttestationRegistry;
+        mapping(string => OffchainAttestation) _offchainAttestationRegistry;
         uint256 schemaCounter;
         uint256 attestationCounter;
     }
@@ -244,7 +244,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return _getSPStorage()._attestationRegistry[attestationId];
     }
 
-    function getOffchainAttestation(string calldata attestationId) external view returns (uint256 timestamp) {
+    function getOffchainAttestation(string calldata attestationId) external view returns (OffchainAttestation memory) {
         return _getSPStorage()._offchainAttestationRegistry[attestationId];
     }
 
@@ -297,8 +297,12 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     function _attestOffchain(string calldata attestationId) internal {
         SPStorage storage $ = _getSPStorage();
-        if ($._offchainAttestationRegistry[attestationId] != 0) revert OffchainAttestationExists(attestationId);
-        $._offchainAttestationRegistry[attestationId] = block.timestamp;
+        OffchainAttestation storage attestation = $._offchainAttestationRegistry[attestationId];
+        if (__offchainAttestationExists(attestationId)) {
+            revert OffchainAttestationExists(attestationId);
+        }
+        attestation.timestamp = uint64(block.timestamp);
+        attestation.attester = _msgSender();
         emit OffchainAttestationMade(attestationId);
     }
 
@@ -317,9 +321,17 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     function _revokeOffchain(string calldata attestationId, string calldata reason) internal {
         SPStorage storage $ = _getSPStorage();
-        if ($._offchainAttestationRegistry[attestationId] == 0) revert OffchainAttestationNonexistent(attestationId);
-        if ($._offchainAttestationRegistry[attestationId] == 1) revert OffchainAttestationAlreadyRevoked(attestationId);
-        $._offchainAttestationRegistry[attestationId] = 1;
+        OffchainAttestation storage attestation = $._offchainAttestationRegistry[attestationId];
+        if (!__offchainAttestationExists(attestationId)) {
+            revert OffchainAttestationNonexistent(attestationId);
+        }
+        if (attestation.attester != _msgSender()) {
+            revert AttestationWrongAttester(attestation.attester, _msgSender());
+        }
+        if (attestation.timestamp == 1) {
+            revert OffchainAttestationAlreadyRevoked(attestationId);
+        }
+        attestation.timestamp = 1;
         emit OffchainAttestationRevoked(attestationId, reason);
     }
 
@@ -340,5 +352,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     function __attestationExists(uint256 attestationId, bool didIncrement) internal view returns (bool) {
         SPStorage storage $ = _getSPStorage();
         return attestationId < $.attestationCounter - (didIncrement ? 1 : 0);
+    }
+
+    function __offchainAttestationExists(string memory attestationId) internal view returns (bool) {
+        SPStorage storage $ = _getSPStorage();
+        return $._offchainAttestationRegistry[attestationId].timestamp != 0;
     }
 }

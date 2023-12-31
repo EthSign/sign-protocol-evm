@@ -191,9 +191,15 @@ contract SPTest is Test {
         vm.expectRevert(abi.encodeWithSelector(OffchainAttestationNonexistent.selector, attestationIds[0]));
         sp.revokeOffchainBatch(attestationIds, reasons);
         // Attest normally
+        vm.prank(prankSender);
         vm.warp(2); // Set block.timestamp to 2 to revoke checks aren't incorrectly tripped
         sp.attestOffchainBatch(attestationIds);
+        // Revoke, trigger `AttestationWrongAttester`
+        vm.prank(prankRecipient0);
+        vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector, prankSender, prankRecipient0));
+        sp.revokeOffchainBatch(attestationIds, reasons);
         // Revoke normally
+        vm.prank(prankSender);
         vm.expectEmit();
         emit OffchainAttestationRevoked(attestationIds[0], reasons[0]);
         emit OffchainAttestationRevoked(attestationIds[1], reasons[1]);
