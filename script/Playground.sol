@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GNU AGPLv3
 pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
@@ -7,7 +7,7 @@ import {SP} from "../src/core/SP.sol";
 import {ISPResolver} from "../src/interfaces/ISPResolver.sol";
 import {Schema} from "../src/models/Schema.sol";
 import {Attestation} from "../src/models/Attestation.sol";
-import {DataLocation, SchemaMetadata} from "../src/models/OffchainResource.sol";
+import {DataLocation} from "../src/models/DataLocation.sol";
 
 contract Playground is Script {
     function run() public {
@@ -21,26 +21,23 @@ contract Playground is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
         instance.register(
-            SchemaMetadata({dataLocation: DataLocation.ARWEAVE, uri: "5Kek9vNs3Gd7I30wqDq9ANdYPBtM2STi1GasyBWZ_hs"}),
             Schema({
                 revocable: true,
-                dataLocation: DataLocation.ONCHAIN,
+                schemaDataLocation: DataLocation.ARWEAVE,
+                attestationDataLocation: DataLocation.ARWEAVE,
                 maxValidFor: 120,
                 resolver: ISPResolver(address(0)),
-                schema: "subgraph test schema 0"
+                data: "5Kek9vNs3Gd7I30wqDq9ANdYPBtM2STi1GasyBWZ_hs"
             })
         );
         instance.register(
-            SchemaMetadata({
-                dataLocation: DataLocation.IPFS,
-                uri: "bafkreic6oods6alkjbuyc46x63hpe2tqmerg552x4u5gkqaoaq5zdhkzfm"
-            }),
             Schema({
                 revocable: true,
-                dataLocation: DataLocation.ONCHAIN,
+                schemaDataLocation: DataLocation.IPFS,
+                attestationDataLocation: DataLocation.IPFS,
                 maxValidFor: 120,
                 resolver: ISPResolver(address(0)),
-                schema: "subgraph test schema 1"
+                data: "bafkreic6oods6alkjbuyc46x63hpe2tqmerg552x4u5gkqaoaq5zdhkzfm"
             })
         );
         vm.stopBroadcast();

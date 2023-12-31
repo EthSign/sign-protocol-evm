@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {ISPResolver} from "../interfaces/ISPResolver.sol";
 import {IVersionable} from "./IVersionable.sol";
 import {Schema} from "../models/Schema.sol";
 import {Attestation, OffchainAttestation} from "../models/Attestation.sol";
-import {DataLocation, SchemaMetadata} from "../models/OffchainResource.sol";
+import {DataLocation} from "../models/DataLocation.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
@@ -13,7 +13,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @author Jack Xu @ EthSign
  */
 interface ISP is IVersionable {
-    event SchemaRegistered(uint256 schemaId, DataLocation metadataDataLocation, string metadataUri);
+    event SchemaRegistered(uint256 schemaId);
     event AttestationMade(uint256 attestationId);
     event AttestationRevoked(uint256 attestationId, string reason);
     event OffchainAttestationMade(string attestationId);
@@ -59,11 +59,10 @@ interface ISP is IVersionable {
     /**
      * @notice Registers a Schema.
      * @dev Emits `SchemaRegistered`.
-     * @param uri See `SchemaMetadata`.
      * @param schema See `Schema`.
      * @return schemaId The assigned ID of the registered schema.
      */
-    function register(SchemaMetadata calldata uri, Schema calldata schema) external returns (uint256 schemaId);
+    function register(Schema calldata schema) external returns (uint256 schemaId);
 
     /**
      * @notice Makes an attestation.
@@ -105,7 +104,7 @@ interface ISP is IVersionable {
     function attestOffchain(string calldata attestationId) external;
 
     /**
-     * @notice Revokes an existing attestation.
+     * @notice Revokes an existing revocable attestation.
      * @dev Emits `AttestationRevoked`. Must be called by the attester.
      * @param attestationId An existing attestation ID.
      * @param reason The revocation reason. This is only emitted as an event to save gas.
@@ -113,7 +112,7 @@ interface ISP is IVersionable {
     function revoke(uint256 attestationId, string calldata reason) external;
 
     /**
-     * @notice Revokes an existing attestation where the schema resolver expects ERC20 payment.
+     * @notice Revokes an existing revocable attestation where the schema resolver expects ERC20 payment.
      * @dev Emits `AttestationRevoked`. Must be called by the attester.
      * @param attestationId An existing attestation ID.
      * @param reason The revocation reason. This is only emitted as an event to save gas.
@@ -122,7 +121,7 @@ interface ISP is IVersionable {
     function revoke(uint256 attestationId, string calldata reason, uint256 resolverFeesETH) external payable;
 
     /**
-     * @notice Revokes an existing attestation where the schema resolver expects ERC20 payment.
+     * @notice Revokes an existing revocable attestation where the schema resolver expects ERC20 payment.
      * @dev Emits `AttestationRevoked`. Must be called by the attester.
      * @param attestationId An existing attestation ID.
      * @param reason The revocation reason. This is only emitted as an event to save gas.
@@ -144,33 +143,55 @@ interface ISP is IVersionable {
      */
     function revokeOffchain(string calldata attestationId, string calldata reason) external;
 
-    function registerBatch(SchemaMetadata[] calldata uris, Schema[] calldata schemas)
-        external
-        returns (uint256[] memory schemaIds);
+    /**
+     * @notice Batch registers a Schema.
+     */
+    function registerBatch(Schema[] calldata schemas) external returns (uint256[] memory schemaIds);
 
+    /**
+     * @notice Batch attests.
+     */
     function attestBatch(Attestation[] calldata attestations) external returns (uint256[] memory attestationIds);
 
+    /**
+     * @notice Batch attests where the schema resolver expects ETH payment.
+     */
     function attestBatch(Attestation[] calldata attestations, uint256[] calldata resolverFeesETH)
         external
         payable
         returns (uint256[] memory attestationIds);
 
+    /**
+     * @notice Batch attests where the schema resolver expects ERC20 payment.
+     */
     function attestBatch(
         Attestation[] calldata attestations,
         IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount
     ) external returns (uint256[] memory attestationIds);
 
+    /**
+     * @notice Batch timestamps off-chain data IDs.
+     */
     function attestOffchainBatch(string[] calldata attestationIds) external;
 
+    /**
+     * @notice Batch revokes revocable on-chain attestations.
+     */
     function revokeBatch(uint256[] calldata attestationIds, string[] calldata reasons) external;
 
+    /**
+     * @notice Batch revokes revocable on-chain attestations where the schema resolver expects ETH payment.
+     */
     function revokeBatch(
         uint256[] calldata attestationIds,
         string[] calldata reasons,
         uint256[] calldata resolverFeesETH
     ) external payable;
 
+    /**
+     * @notice Batch revokes revocable on-chain attestations where the schema resolver expects ERC20 payment.
+     */
     function revokeBatch(
         uint256[] calldata attestationIds,
         string[] calldata reasons,
@@ -178,15 +199,33 @@ interface ISP is IVersionable {
         uint256[] calldata resolverFeesERC20Amount
     ) external;
 
+    /**
+     * @notice Batch revokes off-chain attestations.
+     */
     function revokeOffchainBatch(string[] calldata attestationIds, string[] calldata reasons) external;
 
+    /**
+     * @notice Returns the specified `Schema`.
+     */
     function getSchema(uint256 schemaId) external view returns (Schema memory);
 
+    /**
+     * @notice Returns the specified `Attestation`.
+     */
     function getAttestation(uint256 attestationId) external view returns (Attestation memory);
 
+    /**
+     * @notice Returns the specified `OffchainAttestation`.
+     */
     function getOffchainAttestation(string calldata attestationId) external view returns (OffchainAttestation memory);
 
+    /**
+     * @notice Returns the current schema counter. This is incremented for each `Schema` registered.
+     */
     function schemaCounter() external view returns (uint256);
 
+    /**
+     * @notice Returns the current on-chain attestation counter. This is incremented for each `Attestation` made.
+     */
     function attestationCounter() external view returns (uint256);
 }

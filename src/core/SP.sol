@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GNU AGPLv3
 pragma solidity ^0.8.20;
 
 import {ISP} from "../interfaces/ISP.sol";
 import {ISPResolver} from "../interfaces/ISPResolver.sol";
 import {Schema} from "../models/Schema.sol";
 import {Attestation, OffchainAttestation} from "../models/Attestation.sol";
-import {SchemaMetadata} from "../models/OffchainResource.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -43,22 +42,14 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         $.attestationCounter = 1;
     }
 
-    function register(SchemaMetadata calldata uri, Schema calldata schema)
-        external
-        override
-        returns (uint256 schemaId)
-    {
-        return _register(uri, schema);
+    function register(Schema calldata schema) external override returns (uint256 schemaId) {
+        return _register(schema);
     }
 
-    function registerBatch(SchemaMetadata[] calldata uris, Schema[] calldata schemas)
-        external
-        override
-        returns (uint256[] memory schemaIds)
-    {
+    function registerBatch(Schema[] calldata schemas) external override returns (uint256[] memory schemaIds) {
         schemaIds = new uint256[](schemas.length);
         for (uint256 i = 0; i < schemas.length; i++) {
-            schemaIds[i] = _register(uris[i], schemas[i]);
+            schemaIds[i] = _register(schemas[i]);
         }
     }
 
@@ -260,11 +251,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return "1.0.0";
     }
 
-    function _register(SchemaMetadata calldata uri, Schema calldata schema) internal returns (uint256 schemaId) {
+    function _register(Schema calldata schema) internal returns (uint256 schemaId) {
         SPStorage storage $ = _getSPStorage();
         schemaId = $.schemaCounter++;
         $._schemaRegistry[schemaId] = schema;
-        emit SchemaRegistered(schemaId, uri.dataLocation, uri.uri);
+        emit SchemaRegistered(schemaId);
     }
 
     function _attest(Attestation calldata attestation) internal returns (uint256 schemaId, uint256 attestationId) {

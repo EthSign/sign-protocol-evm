@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
@@ -7,7 +7,7 @@ import {SP} from "../src/core/SP.sol";
 import {ISP} from "../src/interfaces/ISP.sol";
 import {MockResolver} from "../src/mock/MockResolver.sol";
 import {Schema} from "../src/models/Schema.sol";
-import {DataLocation, SchemaMetadata} from "../src/models/OffchainResource.sol";
+import {DataLocation} from "../src/models/DataLocation.sol";
 import {Attestation} from "../src/models/Attestation.sol";
 import {MockERC20} from "../src/mock/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -20,7 +20,7 @@ contract SPTest is Test {
     address public prankRecipient0 = 0x003BBE6Da0EB4963856395829030FcE383a14C53;
     address public prankRecipient1 = 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045;
 
-    event SchemaRegistered(uint256 schemaId, DataLocation metadataDataLocation, string metadataUri);
+    event SchemaRegistered(uint256 schemaId);
     event AttestationMade(uint256 attestationId);
     event AttestationRevoked(uint256 attestationId, string reason);
     event OffchainAttestationMade(string attestationId);
@@ -44,22 +44,22 @@ contract SPTest is Test {
     }
 
     function test_register() public {
-        (SchemaMetadata[] memory uris, Schema[] memory schemas) = _createMockSchemas();
-        // Register 2 different schema, check events & storage
+        Schema[] memory schemas = _createMockSchemas();
+        // Register 2 different schemas, check events & storage
         uint256 currentSchemaCounter = sp.schemaCounter();
         vm.expectEmit();
-        emit SchemaRegistered(currentSchemaCounter++, uris[0].dataLocation, uris[0].uri);
-        emit SchemaRegistered(currentSchemaCounter++, uris[1].dataLocation, uris[1].uri);
-        uint256[] memory schemaIds = sp.registerBatch(uris, schemas);
+        emit SchemaRegistered(currentSchemaCounter++);
+        emit SchemaRegistered(currentSchemaCounter++);
+        uint256[] memory schemaIds = sp.registerBatch(schemas);
         Schema memory schema0Expected = schemas[0];
         Schema memory schema1Expected = schemas[1];
         Schema memory schema0Actual = sp.getSchema(schemaIds[0]);
         Schema memory schema1Actual = sp.getSchema(schemaIds[1]);
-        assertEq(schema0Expected.schema, schema0Actual.schema);
+        assertEq(schema0Expected.data, schema0Actual.data);
         assertEq(schema0Expected.revocable, schema0Actual.revocable);
         assertEq(address(schema0Expected.resolver), address(schema0Actual.resolver));
         assertEq(schema0Expected.maxValidFor, schema0Actual.maxValidFor);
-        assertEq(schema1Expected.schema, schema1Actual.schema);
+        assertEq(schema1Expected.data, schema1Actual.data);
         assertEq(schema1Expected.revocable, schema1Actual.revocable);
         assertEq(address(schema1Expected.resolver), address(schema1Actual.resolver));
         assertEq(schema1Expected.maxValidFor, schema1Actual.maxValidFor);
@@ -67,8 +67,8 @@ contract SPTest is Test {
 
     function test_attest() public {
         // Register 2 different schemas
-        (SchemaMetadata[] memory uris, Schema[] memory schemas) = _createMockSchemas();
-        uint256[] memory schemaIds = sp.registerBatch(uris, schemas);
+        Schema[] memory schemas = _createMockSchemas();
+        uint256[] memory schemaIds = sp.registerBatch(schemas);
         // Create two normal attestations
         Attestation[] memory attestations = _createMockAttestations(schemaIds);
         // Modify the second one to trigger `AttestationInvalidDuration`
@@ -126,8 +126,8 @@ contract SPTest is Test {
 
     function test_revokeFail() public {
         // Register 2 different schemas
-        (SchemaMetadata[] memory uris, Schema[] memory schemas) = _createMockSchemas();
-        uint256[] memory schemaIds = sp.registerBatch(uris, schemas);
+        Schema[] memory schemas = _createMockSchemas();
+        uint256[] memory schemaIds = sp.registerBatch(schemas);
         // Make two normal attestations
         Attestation[] memory attestations = _createMockAttestations(schemaIds);
         vm.prank(prankSender);
@@ -152,9 +152,9 @@ contract SPTest is Test {
 
     function test_revoke() public {
         // Register 2 different schemas
-        (SchemaMetadata[] memory uris, Schema[] memory schemas) = _createMockSchemas();
+        Schema[] memory schemas = _createMockSchemas();
         schemas[1].revocable = true;
-        uint256[] memory schemaIds = sp.registerBatch(uris, schemas);
+        uint256[] memory schemaIds = sp.registerBatch(schemas);
         // Make two normal attestations
         Attestation[] memory attestations = _createMockAttestations(schemaIds);
         vm.prank(prankSender);
@@ -210,28 +210,27 @@ contract SPTest is Test {
         sp.revokeOffchainBatch(attestationIds, reasons);
     }
 
-    function _createMockSchemas() internal view returns (SchemaMetadata[] memory, Schema[] memory) {
+    function _createMockSchemas() internal view returns (Schema[] memory) {
         Schema memory schema0 = Schema({
             revocable: true,
-            dataLocation: DataLocation.ONCHAIN,
+            schemaDataLocation: DataLocation.ONCHAIN,
+            attestationDataLocation: DataLocation.ONCHAIN,
             maxValidFor: 0,
             resolver: mockResolver,
-            schema: "stupid0"
+            data: "stupid0"
         });
         Schema memory schema1 = Schema({
             revocable: false,
-            dataLocation: DataLocation.ONCHAIN,
+            schemaDataLocation: DataLocation.ONCHAIN,
+            attestationDataLocation: DataLocation.ONCHAIN,
             maxValidFor: 100,
             resolver: mockResolver,
-            schema: "stupid1"
+            data: "stupid1"
         });
-        SchemaMetadata[] memory uris = new SchemaMetadata[](2);
-        uris[0] = SchemaMetadata({dataLocation: DataLocation.ARWEAVE, uri: "uri0"});
-        uris[1] = SchemaMetadata({dataLocation: DataLocation.IPFS, uri: "uri1"});
         Schema[] memory schemas = new Schema[](2);
         schemas[0] = schema0;
         schemas[1] = schema1;
-        return (uris, schemas);
+        return schemas;
     }
 
     function _createMockRecipient() internal view returns (address[] memory) {
