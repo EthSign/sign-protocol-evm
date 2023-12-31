@@ -271,7 +271,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         SPStorage storage $ = _getSPStorage();
         attestationId = $.attestationCounter++;
         if (attestation.attester != _msgSender()) revert AttestationWrongAttester(attestation.attester, _msgSender());
-        if (attestation.linkedAttestationId > 0 && !__attestationExists(attestation.linkedAttestationId, true)) {
+        if (attestation.linkedAttestationId > 0 && !__attestationExists(attestation.linkedAttestationId)) {
             revert AttestationNonexistent(attestation.linkedAttestationId);
         }
         if (
@@ -283,7 +283,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             );
         }
         Schema memory s = $._schemaRegistry[attestation.schemaId];
-        if (!__schemaExists(attestation.schemaId, false)) revert SchemaNonexistent(attestation.schemaId);
+        if (!__schemaExists(attestation.schemaId)) revert SchemaNonexistent(attestation.schemaId);
         if (s.maxValidFor > 0) {
             uint256 attestationValidFor = attestation.validUntil - block.timestamp;
             if (s.maxValidFor < attestationValidFor) {
@@ -344,14 +344,14 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return s.resolver;
     }
 
-    function __schemaExists(uint256 schemaId, bool didIncrement) internal view returns (bool) {
+    function __schemaExists(uint256 schemaId) internal view returns (bool) {
         SPStorage storage $ = _getSPStorage();
-        return schemaId < $.schemaCounter - (didIncrement ? 1 : 0);
+        return schemaId < $.schemaCounter;
     }
 
-    function __attestationExists(uint256 attestationId, bool didIncrement) internal view returns (bool) {
+    function __attestationExists(uint256 attestationId) internal view returns (bool) {
         SPStorage storage $ = _getSPStorage();
-        return attestationId < $.attestationCounter - (didIncrement ? 1 : 0);
+        return attestationId < $.attestationCounter;
     }
 
     function __offchainAttestationExists(string memory attestationId) internal view returns (bool) {
