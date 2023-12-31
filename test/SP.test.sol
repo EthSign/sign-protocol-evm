@@ -204,6 +204,10 @@ contract SPTest is Test {
         emit OffchainAttestationRevoked(attestationIds[0], reasons[0]);
         emit OffchainAttestationRevoked(attestationIds[1], reasons[1]);
         sp.revokeOffchainBatch(attestationIds, reasons);
+        // Revoke again, trigger `OffchainAttestationAlreadyRevoked`
+        vm.prank(prankSender);
+        vm.expectRevert(abi.encodeWithSelector(OffchainAttestationAlreadyRevoked.selector, attestationIds[0]));
+        sp.revokeOffchainBatch(attestationIds, reasons);
     }
 
     function _createMockSchemas() internal view returns (SchemaMetadata[] memory, Schema[] memory) {
