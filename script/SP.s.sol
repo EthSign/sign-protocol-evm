@@ -7,8 +7,8 @@ import {SP} from "../src/core/SP.sol";
 
 contract SPDeploymentScript is Script {
     function run() public {
-        // _deploy();
-        _upgrade();
+        _deploy();
+        //_upgrade();
     }
 
     function _deploy() internal {

@@ -11,7 +11,7 @@ import {DataLocation} from "../src/models/DataLocation.sol";
 
 contract Playground is Script {
     function run() public {
-        ISP instance = ISP(0x5A714Fe8F7e73006F8d79443f399A2231A05295F);
+        ISP instance = ISP(0xbBb290fB607940f61eF74521a107Cc126D3Fa39E);
         _register(instance);
         _attest0(instance);
         _attest1(instance);
@@ -44,9 +44,9 @@ contract Playground is Script {
     }
 
     function _attest0(ISP instance) internal {
-        address[] memory recipients = new address[](2);
-        recipients[0] = 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094;
-        recipients[1] = 0x003BBE6Da0EB4963856395829030FcE383a14C53;
+        bytes[] memory recipients = new bytes[](2);
+        recipients[0] = abi.encode(0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094);
+        recipients[1] = abi.encode(0x003BBE6Da0EB4963856395829030FcE383a14C53);
         Attestation memory attestation = Attestation({
             schemaId: 1,
             linkedAttestationId: 0,
@@ -63,9 +63,9 @@ contract Playground is Script {
     }
 
     function _attest1(ISP instance) internal {
-        address[] memory recipients = new address[](2);
-        recipients[0] = 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094;
-        recipients[1] = 0x003BBE6Da0EB4963856395829030FcE383a14C53;
+        bytes[] memory recipients = new bytes[](2);
+        recipients[0] = abi.encode(0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094);
+        recipients[1] = abi.encode(0x003BBE6Da0EB4963856395829030FcE383a14C53);
         Attestation memory attestation = Attestation({
             schemaId: 1,
             linkedAttestationId: 1,

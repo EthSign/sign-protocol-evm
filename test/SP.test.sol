@@ -239,10 +239,10 @@ contract SPTest is Test {
         return addresses;
     }
 
-    function _createMockRecipients() internal view returns (address[] memory) {
-        address[] memory addresses = new address[](2);
-        addresses[0] = prankRecipient0;
-        addresses[1] = prankRecipient1;
+    function _createMockRecipients() internal view returns (bytes[] memory) {
+        bytes[] memory addresses = new bytes[](2);
+        addresses[0] = abi.encode(prankRecipient0);
+        addresses[1] = abi.encode(prankRecipient1);
         return addresses;
     }
 

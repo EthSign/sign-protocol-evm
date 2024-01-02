@@ -11,7 +11,7 @@ pragma solidity ^0.8.20;
  * `attester`: The attester. At this time, the attester must be the caller of `attest()`.
  * `validUntil`: The expiration timestamp of the Attestation. Must respect `Schema.maxValidFor`. 0 indicates no expiration date.
  * `revoked`: If the Attestation has been revoked. It is possible to make a revoked Attestation.
- * `recipients`: The intended recipients of this Attestation. Can be empty.
+ * `recipients`: The intended ABI-encoded recipients of this Attestation. This is of type `bytes` to support non-EVM repicients.
  * `data`: The raw data of the Attestation based on `Schema.schema`. There is no enforcement here, however. Recommended to use `abi.encode`.
  */
 struct Attestation {
@@ -20,7 +20,7 @@ struct Attestation {
     address attester;
     uint64 validUntil;
     bool revoked;
-    address[] recipients;
+    bytes[] recipients;
     bytes data;
 }
 
