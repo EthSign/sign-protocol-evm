@@ -14,7 +14,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 interface ISP is IVersionable {
     event SchemaRegistered(uint256 schemaId);
-    event AttestationMade(uint256 attestationId);
+    event AttestationMade(uint256 attestationId, string indexingKey);
     event AttestationRevoked(uint256 attestationId, string reason);
     event OffchainAttestationMade(string attestationId);
     event OffchainAttestationRevoked(string attestationId, string reason);
@@ -70,7 +70,9 @@ interface ISP is IVersionable {
      * @param attestation See `Attestation`.
      * @return attestationId The assigned ID of the attestation.
      */
-    function attest(Attestation calldata attestation) external returns (uint256 attestationId);
+    function attest(Attestation calldata attestation, string calldata indexingKey)
+        external
+        returns (uint256 attestationId);
 
     /**
      * @notice Makes an attestation where the schema resolver expects ETH payment.
@@ -79,7 +81,7 @@ interface ISP is IVersionable {
      * @param resolverFeesETH Amount of funds to send to the resolver.
      * @return attestationId The assigned ID of the attestation.
      */
-    function attest(Attestation calldata attestation, uint256 resolverFeesETH)
+    function attest(Attestation calldata attestation, uint256 resolverFeesETH, string calldata indexingKey)
         external
         payable
         returns (uint256 attestationId);
@@ -92,9 +94,12 @@ interface ISP is IVersionable {
      * @param resolverFeesERC20Amount Amount of funds to send to the resolver.
      * @return attestationId The assigned ID of the attestation.
      */
-    function attest(Attestation calldata attestation, IERC20 resolverFeesERC20Token, uint256 resolverFeesERC20Amount)
-        external
-        returns (uint256 attestationId);
+    function attest(
+        Attestation calldata attestation,
+        IERC20 resolverFeesERC20Token,
+        uint256 resolverFeesERC20Amount,
+        string calldata indexingKey
+    ) external returns (uint256 attestationId);
 
     /**
      * @notice Timestamps an off-chain data ID.
@@ -151,15 +156,18 @@ interface ISP is IVersionable {
     /**
      * @notice Batch attests.
      */
-    function attestBatch(Attestation[] calldata attestations) external returns (uint256[] memory attestationIds);
+    function attestBatch(Attestation[] calldata attestations, string[] calldata indexingKeys)
+        external
+        returns (uint256[] memory attestationIds);
 
     /**
      * @notice Batch attests where the schema resolver expects ETH payment.
      */
-    function attestBatch(Attestation[] calldata attestations, uint256[] calldata resolverFeesETH)
-        external
-        payable
-        returns (uint256[] memory attestationIds);
+    function attestBatch(
+        Attestation[] calldata attestations,
+        uint256[] calldata resolverFeesETH,
+        string[] calldata indexingKeys
+    ) external payable returns (uint256[] memory attestationIds);
 
     /**
      * @notice Batch attests where the schema resolver expects ERC20 payment.
@@ -167,7 +175,8 @@ interface ISP is IVersionable {
     function attestBatch(
         Attestation[] calldata attestations,
         IERC20[] calldata resolverFeesERC20Tokens,
-        uint256[] calldata resolverFeesERC20Amount
+        uint256[] calldata resolverFeesERC20Amount,
+        string[] calldata indexingKeys
     ) external returns (uint256[] memory attestationIds);
 
     /**

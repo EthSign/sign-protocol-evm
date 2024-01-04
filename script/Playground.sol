@@ -58,7 +58,7 @@ contract Playground is Script {
         });
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-        instance.attest(attestation);
+        instance.attest(attestation, "Test index key 0");
         vm.stopBroadcast();
     }
 
@@ -77,7 +77,7 @@ contract Playground is Script {
         });
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-        instance.attest(attestation);
+        instance.attest(attestation, "Test index key 1");
         vm.stopBroadcast();
     }
 }

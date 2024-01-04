@@ -21,7 +21,7 @@ contract SPTest is Test {
     address public prankRecipient1 = 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045;
 
     event SchemaRegistered(uint256 schemaId);
-    event AttestationMade(uint256 attestationId);
+    event AttestationMade(uint256 attestationId, string indexingKey);
     event AttestationRevoked(uint256 attestationId, string reason);
     event OffchainAttestationMade(string attestationId);
     event OffchainAttestationRevoked(string attestationId, string reason);
@@ -70,7 +70,7 @@ contract SPTest is Test {
         Schema[] memory schemas = _createMockSchemas();
         uint256[] memory schemaIds = sp.registerBatch(schemas);
         // Create two normal attestations
-        Attestation[] memory attestations = _createMockAttestations(schemaIds);
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
         // Modify the second one to trigger `AttestationInvalidDuration`
         uint256 attestationId0 = sp.attestationCounter();
         attestations[1].validUntil = uint64(attestations[1].validUntil + schemas[1].maxValidFor + 1);
@@ -83,38 +83,38 @@ contract SPTest is Test {
             )
         );
         vm.prank(prankSender);
-        sp.attestBatch(attestations);
+        sp.attestBatch(attestations, indexingKeys);
         // Reset and trigger `SchemaNonexistent`
-        attestations = _createMockAttestations(schemaIds);
+        (attestations,) = _createMockAttestations(schemaIds);
         attestations[1].schemaId = 100000;
         vm.expectRevert(abi.encodeWithSelector(SchemaNonexistent.selector, attestations[1].schemaId));
         vm.prank(prankSender);
-        sp.attestBatch(attestations);
+        sp.attestBatch(attestations, indexingKeys);
         // Reset and trigger `AttestationNonexistent` for a linked attestation
-        attestations = _createMockAttestations(schemaIds);
+        (attestations,) = _createMockAttestations(schemaIds);
         uint256 nonexistentAttestationId = 100000;
         attestations[1].linkedAttestationId = nonexistentAttestationId;
         vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, nonexistentAttestationId));
         vm.prank(prankSender);
-        sp.attestBatch(attestations);
+        sp.attestBatch(attestations, indexingKeys);
         // Reset and trigger `AttestationWrongAttester` for a linked attestation
-        attestations = _createMockAttestations(schemaIds);
+        (attestations,) = _createMockAttestations(schemaIds);
         attestations[1].attester = prankRecipient0;
         attestations[1].linkedAttestationId = attestationId0;
         vm.expectEmit();
-        emit AttestationMade(attestationId0);
+        emit AttestationMade(attestationId0, indexingKeys[0]);
         vm.prank(prankSender);
-        sp.attest(attestations[0]);
+        sp.attest(attestations[0], indexingKeys[0]);
         vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector, prankSender, prankRecipient0));
         vm.prank(prankRecipient0);
-        sp.attest(attestations[1]);
+        sp.attest(attestations[1], indexingKeys[1]);
         // Reset and make attest normally
-        attestations = _createMockAttestations(schemaIds);
+        (attestations,) = _createMockAttestations(schemaIds);
         attestations[1].linkedAttestationId = attestationId0;
         vm.expectEmit();
-        emit AttestationMade(attestationId0 + 1);
+        emit AttestationMade(attestationId0 + 1, indexingKeys[1]);
         vm.prank(prankSender);
-        sp.attest(attestations[1]);
+        sp.attest(attestations[1], indexingKeys[1]);
         // Check storage
         Attestation memory attestation0Actual = sp.getAttestation(attestationId0);
         Attestation memory attestation1Actual = sp.getAttestation(attestationId0 + 1);
@@ -129,9 +129,9 @@ contract SPTest is Test {
         Schema[] memory schemas = _createMockSchemas();
         uint256[] memory schemaIds = sp.registerBatch(schemas);
         // Make two normal attestations
-        Attestation[] memory attestations = _createMockAttestations(schemaIds);
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
         vm.prank(prankSender);
-        uint256[] memory attestationIds = sp.attestBatch(attestations);
+        uint256[] memory attestationIds = sp.attestBatch(attestations, indexingKeys);
         string[] memory reasons = _createMockReasons();
         // Trigger `AttestationNonexistent`
         uint256 originalAttestationid = attestationIds[0];
@@ -156,9 +156,9 @@ contract SPTest is Test {
         schemas[1].revocable = true;
         uint256[] memory schemaIds = sp.registerBatch(schemas);
         // Make two normal attestations
-        Attestation[] memory attestations = _createMockAttestations(schemaIds);
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
         vm.prank(prankSender);
-        uint256[] memory attestationIds = sp.attestBatch(attestations);
+        uint256[] memory attestationIds = sp.attestBatch(attestations, indexingKeys);
         string[] memory reasons = _createMockReasons();
         // Revoke normally
         vm.expectEmit();
@@ -255,7 +255,11 @@ contract SPTest is Test {
         return attestationIds;
     }
 
-    function _createMockAttestations(uint256[] memory schemaIds) internal view returns (Attestation[] memory) {
+    function _createMockAttestations(uint256[] memory schemaIds)
+        internal
+        view
+        returns (Attestation[] memory, string[] memory)
+    {
         Attestation memory attestation0 = Attestation({
             schemaId: schemaIds[0],
             linkedAttestationId: 0,
@@ -277,7 +281,10 @@ contract SPTest is Test {
         Attestation[] memory attestations = new Attestation[](2);
         attestations[0] = attestation0;
         attestations[1] = attestation1;
-        return attestations;
+        string[] memory indexingKeys = new string[](2);
+        indexingKeys[0] = "test indexing key 0";
+        indexingKeys[1] = "test indexing key 1";
+        return (attestations, indexingKeys);
     }
 
     function _createMockReasons() internal pure returns (string[] memory) {

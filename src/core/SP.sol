@@ -53,21 +53,25 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function attest(Attestation calldata attestation) external override returns (uint256) {
-        (uint256 schemaId, uint256 attestationId) = _attest(attestation);
+    function attest(Attestation calldata attestation, string calldata indexingKey)
+        external
+        override
+        returns (uint256)
+    {
+        (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) resolver.didReceiveAttestation(_msgSender(), schemaId, attestationId);
         return attestationId;
     }
 
-    function attestBatch(Attestation[] calldata attestations)
+    function attestBatch(Attestation[] calldata attestations, string[] calldata indexingKeys)
         external
         override
         returns (uint256[] memory attestationIds)
     {
         attestationIds = new uint256[](attestations.length);
         for (uint256 i = 0; i < attestations.length; i++) {
-            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i]);
+            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i], indexingKeys[i]);
             attestationIds[i] = attestationId;
             ISPResolver resolver = __getResolverFromAttestationId(attestationId);
             if (address(resolver) != address(0)) {
@@ -76,8 +80,12 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function attest(Attestation calldata attestation, uint256 resolverFeesETH) external payable returns (uint256) {
-        (uint256 schemaId, uint256 attestationId) = _attest(attestation);
+    function attest(Attestation calldata attestation, uint256 resolverFeesETH, string calldata indexingKey)
+        external
+        payable
+        returns (uint256)
+    {
+        (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveAttestation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
@@ -85,15 +93,14 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return attestationId;
     }
 
-    function attestBatch(Attestation[] calldata attestations, uint256[] calldata resolverFeesETH)
-        external
-        payable
-        override
-        returns (uint256[] memory attestationIds)
-    {
+    function attestBatch(
+        Attestation[] calldata attestations,
+        uint256[] calldata resolverFeesETH,
+        string[] calldata indexingKeys
+    ) external payable override returns (uint256[] memory attestationIds) {
         attestationIds = new uint256[](attestations.length);
         for (uint256 i = 0; i < attestations.length; i++) {
-            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i]);
+            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i], indexingKeys[i]);
             attestationIds[i] = attestationId;
             ISPResolver resolver = __getResolverFromAttestationId(attestationId);
             if (address(resolver) != address(0)) {
@@ -102,12 +109,13 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function attest(Attestation calldata attestation, IERC20 resolverFeesERC20Token, uint256 resolverFeesERC20Amount)
-        external
-        override
-        returns (uint256)
-    {
-        (uint256 schemaId, uint256 attestationId) = _attest(attestation);
+    function attest(
+        Attestation calldata attestation,
+        IERC20 resolverFeesERC20Token,
+        uint256 resolverFeesERC20Amount,
+        string calldata indexingKey
+    ) external override returns (uint256) {
+        (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveAttestation(
@@ -120,11 +128,12 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     function attestBatch(
         Attestation[] calldata attestations,
         IERC20[] calldata resolverFeesERC20Tokens,
-        uint256[] calldata resolverFeesERC20Amount
+        uint256[] calldata resolverFeesERC20Amount,
+        string[] calldata indexingKeys
     ) external override returns (uint256[] memory attestationIds) {
         attestationIds = new uint256[](attestations.length);
         for (uint256 i = 0; i < attestations.length; i++) {
-            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i]);
+            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i], indexingKeys[i]);
             attestationIds[i] = attestationId;
             ISPResolver resolver = __getResolverFromAttestationId(attestationId);
             if (address(resolver) != address(0)) {
@@ -258,7 +267,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         emit SchemaRegistered(schemaId);
     }
 
-    function _attest(Attestation calldata attestation) internal returns (uint256 schemaId, uint256 attestationId) {
+    function _attest(Attestation calldata attestation, string calldata indexingKey)
+        internal
+        returns (uint256 schemaId, uint256 attestationId)
+    {
         SPStorage storage $ = _getSPStorage();
         attestationId = $.attestationCounter++;
         if (attestation.attester != _msgSender()) revert AttestationWrongAttester(attestation.attester, _msgSender());
@@ -282,7 +294,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             }
         }
         $._attestationRegistry[attestationId] = attestation;
-        emit AttestationMade(attestationId);
+        emit AttestationMade(attestationId, indexingKey);
         return (attestation.schemaId, attestationId);
     }
 
