@@ -213,16 +213,14 @@ contract SPTest is Test {
     function _createMockSchemas() internal view returns (Schema[] memory) {
         Schema memory schema0 = Schema({
             revocable: true,
-            schemaDataLocation: DataLocation.ONCHAIN,
-            attestationDataLocation: DataLocation.ONCHAIN,
+            dataLocation: DataLocation.ONCHAIN,
             maxValidFor: 0,
             resolver: mockResolver,
             data: "stupid0"
         });
         Schema memory schema1 = Schema({
             revocable: false,
-            schemaDataLocation: DataLocation.ONCHAIN,
-            attestationDataLocation: DataLocation.ONCHAIN,
+            dataLocation: DataLocation.ONCHAIN,
             maxValidFor: 100,
             resolver: mockResolver,
             data: "stupid1"
@@ -262,6 +260,7 @@ contract SPTest is Test {
     {
         Attestation memory attestation0 = Attestation({
             schemaId: schemaIds[0],
+            dataLocation: DataLocation.ONCHAIN,
             linkedAttestationId: 0,
             data: "",
             attester: prankSender,
@@ -271,6 +270,7 @@ contract SPTest is Test {
         });
         Attestation memory attestation1 = Attestation({
             schemaId: schemaIds[1],
+            dataLocation: DataLocation.ONCHAIN,
             linkedAttestationId: 0,
             data: "",
             attester: prankSender,

@@ -27,5 +27,6 @@ case "$1" in
   "coverage:integration") forge coverage --match-path "./src/*.sol" --report lcov --report summary ;;
   "deploy:polygon-mumbai") source .env && forge script SPDeploymentScript --ffi --chain-id 80001 --rpc-url $MUMBAI_RPC_URL --broadcast --verify --etherscan-api-key $POLYGONSCAN_API_KEY -vvv ;;
   "mock:polygon-mumbai") source .env && forge script Playground --chain-id 80001 --rpc-url $MUMBAI_RPC_URL --broadcast -vvv ;;
+  "deploy:zetachain-testnet") source .env && forge create --rpc-url $ZETACHAIN_TESTNET_RPC_URL --private-key $PRIVATE_KEY SP ;;
   *) echo "Invalid command: $1" ;;
 esac

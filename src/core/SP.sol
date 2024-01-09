@@ -30,12 +30,15 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
+        if (block.chainid == 7001) {
+            initialize(); // Special case for ZetaChain, where Foundry scripting fails
+        }
         if (block.chainid != 31337) {
             _disableInitializers();
         }
     }
 
-    function initialize() external initializer {
+    function initialize() public initializer {
         SPStorage storage $ = _getSPStorage();
         __Ownable_init(_msgSender());
         $.schemaCounter = 1;
