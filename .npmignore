@@ -1,0 +1,9 @@
+.github
+.vscode
+broadcast
+cache
+out
+script
+test
+.env
+.gitignore

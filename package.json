@@ -1,0 +1,12 @@
+{
+  "name": "sign-attestation-protocol-evm",
+  "version": "1.0.0",
+  "description": "Sign Protocol is an omni-chain attestation protocol, enabling users to freely attest and verify any information on-chain.",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {},
+  "author": "",
+  "license": "ISC"
+}
