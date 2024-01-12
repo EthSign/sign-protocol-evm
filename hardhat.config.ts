@@ -11,6 +11,11 @@ if (process.env.NODE_ENV !== "PRODUCTION") {
 }
 
 const config: HardhatUserConfig = {
+  namedAccounts: {
+    deployer: {
+      default: 0,
+    },
+  },
   solidity: {
     compilers: [
       {
@@ -40,6 +45,56 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+  },
+  etherscan: {
+    apiKey: {
+      mumbai: process.env.POLYGONSCAN_KEY!,
+      mantaPacific: process.env.MANTAPACIFIC_KEY!,
+      mantaPacificTestnet: process.env.MANTAPACIFIC_TEST_KEY!,
+      avax: process.env.SNOWTRACE_KEY!,
+      sepolia: process.env.ETHERSCAN_KEY!,
+      mainnet: process.env.ETHERSCAN_KEY!,
+      zetachain_testnet: process.env.ETHERSCAN_KEY!,
+    },
+    customChains: [
+      {
+        network: "manta",
+        chainId: 169,
+        urls: {
+          apiURL: "https://manta-pacific.calderaexplorer.xyz/api",
+          browserURL: "https://pacific-explorer.manta.network/",
+        },
+      },
+      {
+        network: "manta_testnet",
+        chainId: 3441005,
+        urls: {
+          apiURL: "https://pacific-explorer.testnet.manta.network/api",
+          browserURL: "https://pacific-explorer.testnet.manta.network/",
+        },
+      },
+      {
+        network: "avax",
+        chainId: 43114,
+        urls: {
+          apiURL:
+            "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
+          browserURL: "https://avascan.info/",
+        },
+      },
+      {
+        network: "zetachain_testnet",
+        chainId: 7001,
+        urls: {
+          apiURL: "https://zetachain-athens-3.blockscout.com/api",
+          browserURL: "https://zetachain-athens-3.blockscout.com/",
+        },
+      },
+    ],
+  },
+  docgen: {
+    pages: "files",
+    exclude: ["libraries", "mock"],
   },
 };
 
