@@ -6,6 +6,7 @@ import {ISPResolver} from "../interfaces/ISPResolver.sol";
 import {Schema} from "../models/Schema.sol";
 import {Attestation, OffchainAttestation} from "../models/Attestation.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -21,6 +22,15 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     // keccak256(abi.encode(uint256(keccak256("ethsign.SP")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant SPStorageLocation = 0x9f5ee6fb062129ebe4f4f93ab4866ee289599fbb940712219d796d503e3bd400;
+
+    bytes32 private constant ATTEST_ACTION_NAME = "ATTEST";
+    bytes32 private constant ATTEST_BATCH_ACTION_NAME = "ATTEST_BATCH";
+    bytes32 private constant ATTEST_OFFCHAIN_ACTION_NAME = "ATTEST_OFFCHAIN";
+    bytes32 private constant ATTEST_OFFCHAIN_BATCH_ACTION_NAME = "ATTEST_OFFCHAIN_BATCH";
+    bytes32 private constant REVOKE_ACTION_NAME = "REVOKE";
+    bytes32 private constant REVOKE_BATCH_ACTION_NAME = "REVOKE_BATCH";
+    bytes32 private constant REVOKE_OFFCHAIN_ACTION_NAME = "REVOKE_OFFCHAIN";
+    bytes32 private constant REVOKE_OFFCHAIN_BATCH_ACTION_NAME = "REVOKE_OFFCHAIN_BATCH";
 
     function _getSPStorage() internal pure returns (SPStorage storage $) {
         assembly {
@@ -56,25 +66,37 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function attest(Attestation calldata attestation, string calldata indexingKey)
+    function attest(Attestation calldata attestation, string calldata indexingKey, bytes calldata delegateSignature)
         external
         override
         returns (uint256)
     {
-        (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey);
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            __checkDelegationSignature(attestation.attester, getDelegatedAttestHash(attestation), delegateSignature);
+        }
+        (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey, delegateMode);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) resolver.didReceiveAttestation(_msgSender(), schemaId, attestationId);
         return attestationId;
     }
 
-    function attestBatch(Attestation[] calldata attestations, string[] calldata indexingKeys)
-        external
-        override
-        returns (uint256[] memory attestationIds)
-    {
+    function attestBatch(
+        Attestation[] calldata attestations,
+        string[] calldata indexingKeys,
+        bytes calldata delegateSignature
+    ) external override returns (uint256[] memory attestationIds) {
+        bool delegateMode = delegateSignature.length != 0;
+        address attester = attestations[0].attester;
+        if (delegateMode) {
+            __checkDelegationSignature(attester, getDelegatedAttestBatchHash(attestations), delegateSignature);
+        }
         attestationIds = new uint256[](attestations.length);
         for (uint256 i = 0; i < attestations.length; i++) {
-            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i], indexingKeys[i]);
+            if (delegateMode && attestations[i].attester != attester) {
+                revert AttestationWrongAttester(attester, attestations[i].attester);
+            }
+            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i], indexingKeys[i], delegateMode);
             attestationIds[i] = attestationId;
             ISPResolver resolver = __getResolverFromAttestationId(attestationId);
             if (address(resolver) != address(0)) {
@@ -83,12 +105,17 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function attest(Attestation calldata attestation, uint256 resolverFeesETH, string calldata indexingKey)
-        external
-        payable
-        returns (uint256)
-    {
-        (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey);
+    function attest(
+        Attestation calldata attestation,
+        uint256 resolverFeesETH,
+        string calldata indexingKey,
+        bytes calldata delegateSignature
+    ) external payable returns (uint256) {
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            __checkDelegationSignature(attestation.attester, getDelegatedAttestHash(attestation), delegateSignature);
+        }
+        (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey, delegateMode);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveAttestation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
@@ -99,11 +126,20 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     function attestBatch(
         Attestation[] calldata attestations,
         uint256[] calldata resolverFeesETH,
-        string[] calldata indexingKeys
+        string[] calldata indexingKeys,
+        bytes calldata delegateSignature
     ) external payable override returns (uint256[] memory attestationIds) {
+        bool delegateMode = delegateSignature.length != 0;
+        address attester = attestations[0].attester;
+        if (delegateMode) {
+            __checkDelegationSignature(attester, getDelegatedAttestBatchHash(attestations), delegateSignature);
+        }
         attestationIds = new uint256[](attestations.length);
         for (uint256 i = 0; i < attestations.length; i++) {
-            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i], indexingKeys[i]);
+            if (delegateMode && attestations[i].attester != attester) {
+                revert AttestationWrongAttester(attester, attestations[i].attester);
+            }
+            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i], indexingKeys[i], delegateMode);
             attestationIds[i] = attestationId;
             ISPResolver resolver = __getResolverFromAttestationId(attestationId);
             if (address(resolver) != address(0)) {
@@ -116,9 +152,14 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         Attestation calldata attestation,
         IERC20 resolverFeesERC20Token,
         uint256 resolverFeesERC20Amount,
-        string calldata indexingKey
+        string calldata indexingKey,
+        bytes calldata delegateSignature
     ) external override returns (uint256) {
-        (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey);
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            __checkDelegationSignature(attestation.attester, getDelegatedAttestHash(attestation), delegateSignature);
+        }
+        (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey, delegateMode);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveAttestation(
@@ -129,14 +170,23 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function attestBatch(
-        Attestation[] calldata attestations,
-        IERC20[] calldata resolverFeesERC20Tokens,
-        uint256[] calldata resolverFeesERC20Amount,
-        string[] calldata indexingKeys
+        Attestation[] memory attestations,
+        IERC20[] memory resolverFeesERC20Tokens,
+        uint256[] memory resolverFeesERC20Amount,
+        string[] memory indexingKeys,
+        bytes memory delegateSignature
     ) external override returns (uint256[] memory attestationIds) {
+        bool delegateMode = delegateSignature.length != 0;
+        address attester = attestations[0].attester;
+        if (delegateMode) {
+            __checkDelegationSignature(attester, getDelegatedAttestBatchHash(attestations), delegateSignature);
+        }
         attestationIds = new uint256[](attestations.length);
         for (uint256 i = 0; i < attestations.length; i++) {
-            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i], indexingKeys[i]);
+            if (delegateMode && attestations[i].attester != attester) {
+                revert AttestationWrongAttester(attester, attestations[i].attester);
+            }
+            (uint256 schemaId, uint256 attestationId) = _attest(attestations[i], indexingKeys[i], delegateMode);
             attestationIds[i] = attestationId;
             ISPResolver resolver = __getResolverFromAttestationId(attestationId);
             if (address(resolver) != address(0)) {
@@ -147,27 +197,74 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function attestOffchain(string calldata attestationId) external override {
-        _attestOffchain(attestationId);
+    function attestOffchain(
+        string calldata offchainAttestationId,
+        address delegateAttester,
+        bytes calldata delegateSignature
+    ) external override {
+        address attester = _msgSender();
+        if (delegateSignature.length != 0) {
+            __checkDelegationSignature(
+                delegateAttester, getDelegatedOffchainAttestHash(offchainAttestationId), delegateSignature
+            );
+            attester = delegateAttester;
+        }
+        _attestOffchain(offchainAttestationId, attester);
     }
 
-    function attestOffchainBatch(string[] calldata attestationIds) external override {
+    function attestOffchainBatch(
+        string[] calldata attestationIds,
+        address delegateAttester,
+        bytes calldata delegateSignature
+    ) external override {
+        address attester = _msgSender();
+        if (delegateSignature.length != 0) {
+            __checkDelegationSignature(
+                delegateAttester, getDelegatedOffchainAttestBatchHash(attestationIds), delegateSignature
+            );
+            attester = delegateAttester;
+        }
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            _attestOffchain(attestationIds[i]);
+            _attestOffchain(attestationIds[i], attester);
         }
     }
 
-    function revoke(uint256 attestationId, string calldata reason) external override {
-        uint256 schemaId = _revoke(attestationId, reason);
+    function revoke(uint256 attestationId, string calldata reason, bytes calldata delegateSignature)
+        external
+        override
+    {
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            __checkDelegationSignature(
+                _getSPStorage()._attestationRegistry[attestationId].attester,
+                getDelegatedRevokeHash(attestationId),
+                delegateSignature
+            );
+        }
+        uint256 schemaId = _revoke(attestationId, reason, delegateMode);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveRevocation(_msgSender(), schemaId, attestationId);
         }
     }
 
-    function revokeBatch(uint256[] calldata attestationIds, string[] calldata reasons) external override {
+    function revokeBatch(uint256[] calldata attestationIds, string[] calldata reasons, bytes calldata delegateSignature)
+        external
+        override
+    {
+        address currentAttester = _msgSender();
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            address storageAttester = _getSPStorage()._attestationRegistry[attestationIds[0]].attester;
+            __checkDelegationSignature(storageAttester, getDelegatedRevokeBatchHash(attestationIds), delegateSignature);
+            currentAttester = storageAttester;
+        }
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            uint256 schemaId = _revoke(attestationIds[i], reasons[i]);
+            address storageAttester = _getSPStorage()._attestationRegistry[attestationIds[i]].attester;
+            if (delegateMode && storageAttester != currentAttester) {
+                revert AttestationWrongAttester(storageAttester, currentAttester);
+            }
+            uint256 schemaId = _revoke(attestationIds[i], reasons[i], delegateMode);
             ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveRevocation(_msgSender(), schemaId, attestationIds[i]);
@@ -175,8 +272,18 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function revoke(uint256 attestationId, string calldata reason, uint256 resolverFeesETH) external payable override {
-        uint256 schemaId = _revoke(attestationId, reason);
+    function revoke(
+        uint256 attestationId,
+        string calldata reason,
+        uint256 resolverFeesETH,
+        bytes calldata delegateSignature
+    ) external payable override {
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
+            __checkDelegationSignature(storageAttester, getDelegatedRevokeHash(attestationId), delegateSignature);
+        }
+        uint256 schemaId = _revoke(attestationId, reason, delegateMode);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveRevocation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
@@ -184,12 +291,24 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function revokeBatch(
-        uint256[] calldata attestationIds,
-        string[] calldata reasons,
-        uint256[] calldata resolverFeesETH
+        uint256[] memory attestationIds,
+        string[] memory reasons,
+        uint256[] memory resolverFeesETH,
+        bytes memory delegateSignature
     ) external payable override {
+        address currentAttester = _msgSender();
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            address storageAttester = _getSPStorage()._attestationRegistry[attestationIds[0]].attester;
+            __checkDelegationSignature(storageAttester, getDelegatedRevokeBatchHash(attestationIds), delegateSignature);
+            currentAttester = storageAttester;
+        }
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            uint256 schemaId = _revoke(attestationIds[i], reasons[i]);
+            address storageAttester = _getSPStorage()._attestationRegistry[attestationIds[i]].attester;
+            if (delegateMode && storageAttester != currentAttester) {
+                revert AttestationWrongAttester(storageAttester, currentAttester);
+            }
+            uint256 schemaId = _revoke(attestationIds[i], reasons[i], delegateMode);
             ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveRevocation{value: resolverFeesETH[i]}(_msgSender(), schemaId, attestationIds[i]);
@@ -201,9 +320,15 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         uint256 attestationId,
         string calldata reason,
         IERC20 resolverFeesERC20Token,
-        uint256 resolverFeesERC20Amount
+        uint256 resolverFeesERC20Amount,
+        bytes calldata delegateSignature
     ) external override {
-        uint256 schemaId = _revoke(attestationId, reason);
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
+            __checkDelegationSignature(storageAttester, getDelegatedRevokeHash(attestationId), delegateSignature);
+        }
+        uint256 schemaId = _revoke(attestationId, reason, delegateMode);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
             resolver.didReceiveRevocation(
@@ -213,13 +338,25 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function revokeBatch(
-        uint256[] calldata attestationIds,
-        string[] calldata reasons,
-        IERC20[] calldata resolverFeesERC20Tokens,
-        uint256[] calldata resolverFeesERC20Amount
+        uint256[] memory attestationIds,
+        string[] memory reasons,
+        IERC20[] memory resolverFeesERC20Tokens,
+        uint256[] memory resolverFeesERC20Amount,
+        bytes memory delegateSignature
     ) external override {
+        address currentAttester = _msgSender();
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            address storageAttester = _getSPStorage()._attestationRegistry[attestationIds[0]].attester;
+            __checkDelegationSignature(storageAttester, getDelegatedRevokeBatchHash(attestationIds), delegateSignature);
+            currentAttester = storageAttester;
+        }
         for (uint256 i = 0; i < attestationIds.length; i++) {
-            uint256 schemaId = _revoke(attestationIds[i], reasons[i]);
+            address storageAttester = _getSPStorage()._attestationRegistry[attestationIds[i]].attester;
+            if (delegateMode && storageAttester != currentAttester) {
+                revert AttestationWrongAttester(storageAttester, currentAttester);
+            }
+            uint256 schemaId = _revoke(attestationIds[i], reasons[i], delegateMode);
             ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
                 resolver.didReceiveRevocation(
@@ -229,13 +366,41 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function revokeOffchain(string calldata attestationId, string calldata reason) external override {
-        _revokeOffchain(attestationId, reason);
+    function revokeOffchain(
+        string calldata offchainAttestationId,
+        string calldata reason,
+        bytes calldata delegateSignature
+    ) external override {
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            address storageAttester = _getSPStorage()._offchainAttestationRegistry[offchainAttestationId].attester;
+            __checkDelegationSignature(
+                storageAttester, getDelegatedOffchainRevokeHash(offchainAttestationId), delegateSignature
+            );
+        }
+        _revokeOffchain(offchainAttestationId, reason, delegateMode);
     }
 
-    function revokeOffchainBatch(string[] calldata attestationIds, string[] calldata reasons) external override {
-        for (uint256 i = 0; i < attestationIds.length; i++) {
-            _revokeOffchain(attestationIds[i], reasons[i]);
+    function revokeOffchainBatch(
+        string[] calldata offchainAttestationIds,
+        string[] calldata reasons,
+        bytes calldata delegateSignature
+    ) external override {
+        address currentAttester = _msgSender();
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            address storageAttester = _getSPStorage()._offchainAttestationRegistry[offchainAttestationIds[0]].attester;
+            __checkDelegationSignature(
+                storageAttester, getDelegatedOffchainRevokeBatchHash(offchainAttestationIds), delegateSignature
+            );
+            currentAttester = storageAttester;
+        }
+        for (uint256 i = 0; i < offchainAttestationIds.length; i++) {
+            address storageAttester = _getSPStorage()._offchainAttestationRegistry[offchainAttestationIds[i]].attester;
+            if (delegateMode && storageAttester != currentAttester) {
+                revert AttestationWrongAttester(storageAttester, currentAttester);
+            }
+            _revokeOffchain(offchainAttestationIds[i], reasons[i], delegateMode);
         }
     }
 
@@ -247,8 +412,12 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return _getSPStorage()._attestationRegistry[attestationId];
     }
 
-    function getOffchainAttestation(string calldata attestationId) external view returns (OffchainAttestation memory) {
-        return _getSPStorage()._offchainAttestationRegistry[attestationId];
+    function getOffchainAttestation(string calldata offchainAttestationId)
+        external
+        view
+        returns (OffchainAttestation memory)
+    {
+        return _getSPStorage()._offchainAttestationRegistry[offchainAttestationId];
     }
 
     function schemaCounter() external view override returns (uint256) {
@@ -263,6 +432,56 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return "1.0.0";
     }
 
+    function getDelegatedAttestHash(Attestation memory attestation) public pure override returns (bytes32) {
+        return keccak256(abi.encode(ATTEST_ACTION_NAME, attestation));
+    }
+
+    function getDelegatedAttestBatchHash(Attestation[] memory attestations) public pure returns (bytes32) {
+        return keccak256(abi.encode(ATTEST_BATCH_ACTION_NAME, attestations));
+    }
+
+    function getDelegatedOffchainAttestHash(string memory offchainAttestationId)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(ATTEST_OFFCHAIN_ACTION_NAME, offchainAttestationId));
+    }
+
+    function getDelegatedOffchainAttestBatchHash(string[] memory offchainAttestationIds)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(ATTEST_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds));
+    }
+
+    function getDelegatedRevokeHash(uint256 attestationId) public pure override returns (bytes32) {
+        return keccak256(abi.encode(REVOKE_ACTION_NAME, attestationId));
+    }
+
+    function getDelegatedRevokeBatchHash(uint256[] memory attestationIds) public pure returns (bytes32) {
+        return keccak256(abi.encode(REVOKE_BATCH_ACTION_NAME, attestationIds));
+    }
+
+    function getDelegatedOffchainRevokeHash(string memory offchainAttestationId)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(REVOKE_OFFCHAIN_ACTION_NAME, offchainAttestationId));
+    }
+
+    function getDelegatedOffchainRevokeBatchHash(string[] memory offchainAttestationIds)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(REVOKE_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds));
+    }
+
     function _register(Schema calldata schema) internal returns (uint256 schemaId) {
         SPStorage storage $ = _getSPStorage();
         schemaId = $.schemaCounter++;
@@ -270,13 +489,16 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         emit SchemaRegistered(schemaId);
     }
 
-    function _attest(Attestation calldata attestation, string calldata indexingKey)
+    function _attest(Attestation memory attestation, string memory indexingKey, bool delegateMode)
         internal
         returns (uint256 schemaId, uint256 attestationId)
     {
         SPStorage storage $ = _getSPStorage();
         attestationId = $.attestationCounter++;
-        if (attestation.attester != _msgSender()) revert AttestationWrongAttester(attestation.attester, _msgSender());
+        // In delegation mode, the attester is already checked ahead of time.
+        if (!delegateMode && attestation.attester != _msgSender()) {
+            revert AttestationWrongAttester(attestation.attester, _msgSender());
+        }
         if (attestation.linkedAttestationId > 0 && !__attestationExists(attestation.linkedAttestationId)) {
             revert AttestationNonexistent(attestation.linkedAttestationId);
         }
@@ -301,22 +523,26 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return (attestation.schemaId, attestationId);
     }
 
-    function _attestOffchain(string calldata attestationId) internal {
+    function _attestOffchain(string calldata offchainAttestationId, address attester) internal {
         SPStorage storage $ = _getSPStorage();
-        OffchainAttestation storage attestation = $._offchainAttestationRegistry[attestationId];
-        if (__offchainAttestationExists(attestationId)) {
-            revert OffchainAttestationExists(attestationId);
+        OffchainAttestation storage attestation = $._offchainAttestationRegistry[offchainAttestationId];
+        if (__offchainAttestationExists(offchainAttestationId)) {
+            revert OffchainAttestationExists(offchainAttestationId);
         }
         attestation.timestamp = uint64(block.timestamp);
-        attestation.attester = _msgSender();
-        emit OffchainAttestationMade(attestationId);
+        attestation.attester = attester;
+        emit OffchainAttestationMade(offchainAttestationId);
     }
 
-    function _revoke(uint256 attestationId, string calldata reason) internal returns (uint256 schemaId) {
+    function _revoke(uint256 attestationId, string memory reason, bool delegateMode)
+        internal
+        returns (uint256 schemaId)
+    {
         SPStorage storage $ = _getSPStorage();
         Attestation storage a = $._attestationRegistry[attestationId];
         if (a.attester == address(0)) revert AttestationNonexistent(attestationId);
-        if (a.attester != _msgSender()) revert AttestationWrongAttester(a.attester, _msgSender());
+        // In delegation mode, the attester is already checked ahead of time.
+        if (!delegateMode && a.attester != _msgSender()) revert AttestationWrongAttester(a.attester, _msgSender());
         Schema memory s = $._schemaRegistry[a.schemaId];
         if (!s.revocable) revert AttestationIrrevocable(a.schemaId, attestationId);
         if (a.revoked) revert AttestationAlreadyRevoked(attestationId);
@@ -325,23 +551,34 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return a.schemaId;
     }
 
-    function _revokeOffchain(string calldata attestationId, string calldata reason) internal {
+    function _revokeOffchain(string calldata offchainAttestationId, string calldata reason, bool delegateMode)
+        internal
+    {
         SPStorage storage $ = _getSPStorage();
-        OffchainAttestation storage attestation = $._offchainAttestationRegistry[attestationId];
-        if (!__offchainAttestationExists(attestationId)) {
-            revert OffchainAttestationNonexistent(attestationId);
+        OffchainAttestation storage attestation = $._offchainAttestationRegistry[offchainAttestationId];
+        if (!__offchainAttestationExists(offchainAttestationId)) {
+            revert OffchainAttestationNonexistent(offchainAttestationId);
         }
-        if (attestation.attester != _msgSender()) {
+        if (!delegateMode && attestation.attester != _msgSender()) {
             revert AttestationWrongAttester(attestation.attester, _msgSender());
         }
         if (attestation.timestamp == 1) {
-            revert OffchainAttestationAlreadyRevoked(attestationId);
+            revert OffchainAttestationAlreadyRevoked(offchainAttestationId);
         }
         attestation.timestamp = 1;
-        emit OffchainAttestationRevoked(attestationId, reason);
+        emit OffchainAttestationRevoked(offchainAttestationId, reason);
     }
 
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
+
+    function __checkDelegationSignature(address delegateAttester, bytes32 hash, bytes memory delegateSignature)
+        internal
+        view
+    {
+        if (!SignatureChecker.isValidSignatureNow(delegateAttester, hash, delegateSignature)) {
+            revert InvalidDelegateSignature();
+        }
+    }
 
     function __getResolverFromAttestationId(uint256 attestationId) internal view returns (ISPResolver) {
         SPStorage storage $ = _getSPStorage();
