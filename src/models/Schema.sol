@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { ISPResolver } from "../interfaces/ISPResolver.sol";
+import { ISPHook } from "../interfaces/ISPHook.sol";
 import { DataLocation } from "./DataLocation.sol";
 
 /**
@@ -13,8 +13,8 @@ import { DataLocation } from "./DataLocation.sol";
  * `dataLocation`: Where `Schema.data` is stored. See `DataLocation.DataLocation`.
  * `maxValidFor`: The maximum number of seconds that an Attestation can remain valid. 0 means Attestations can be valid
  * forever. This is enforced through `Attestation.validUntil`.
- * `resolver`: The `ISPResolver` that is called at the end of every function. 0 means there is no resolver set. See
- * `ISPResolver`.
+ * `hook`: The `ISPHook` that is called at the end of every function. 0 means there is no hook set. See
+ * `ISPHook`.
  * `data`: The raw schema that `Attestation.data` should follow. Since there is no way to enforce this, it is a `string`
  * for easy readability.
  */
@@ -22,6 +22,6 @@ struct Schema {
     bool revocable;
     DataLocation dataLocation;
     uint64 maxValidFor;
-    ISPResolver resolver;
+    ISPHook hook;
     string data;
 }

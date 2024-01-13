@@ -10,17 +10,11 @@ extra_output = ["storageLayout"]
 auto_detect_remappings = true
 
 [fmt]
-  bracket_spacing = true
-  int_types = "long"
-  line_length = 120
-  multiline_func_header = "all"
-  number_underscore = "thousands"
-  quote_style = "double"
-  tab_width = 4
-  wrap_comments = true
-
-[rpc_endpoints]
-mumbai = "${MUMBAI_RPC_URL}"
-
-[etherscan]
-mumbai = { key = "${POLYGONSCAN_API_KEY}" }
+bracket_spacing = true
+int_types = "long"
+line_length = 120
+multiline_func_header = "all"
+number_underscore = "thousands"
+quote_style = "double"
+tab_width = 4
+wrap_comments = true

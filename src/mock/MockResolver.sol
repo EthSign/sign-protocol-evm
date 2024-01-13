@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { ISPResolver, IERC20 } from "../interfaces/ISPResolver.sol";
+import { ISPHook, IERC20 } from "../interfaces/ISPHook.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -65,11 +65,12 @@ contract MockResolverAdmin is OwnableUpgradeable {
     }
 }
 
-contract MockResolver is ISPResolver, MockResolverAdmin {
+contract MockResolver is ISPHook, MockResolverAdmin {
     function didReceiveAttestation(
         address attester,
         uint256 schemaId,
-        uint256 attestationId
+        uint256 attestationId,
+        bytes calldata
     )
         external
         payable
@@ -82,7 +83,8 @@ contract MockResolver is ISPResolver, MockResolverAdmin {
         uint256 schemaId,
         uint256 attestationId,
         IERC20 resolverFeeERC20Token,
-        uint256 resolverFeeERC20Amount
+        uint256 resolverFeeERC20Amount,
+        bytes calldata
     )
         external
         override
@@ -93,7 +95,8 @@ contract MockResolver is ISPResolver, MockResolverAdmin {
     function didReceiveRevocation(
         address attester,
         uint256 schemaId,
-        uint256 attestationId
+        uint256 attestationId,
+        bytes calldata
     )
         external
         payable
@@ -107,7 +110,8 @@ contract MockResolver is ISPResolver, MockResolverAdmin {
         uint256 schemaId,
         uint256 attestationId,
         IERC20 resolverFeeERC20Token,
-        uint256 resolverFeeERC20Amount
+        uint256 resolverFeeERC20Amount,
+        bytes calldata
     )
         external
         override

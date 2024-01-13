@@ -7,26 +7,42 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @title SIGN Attestation Protocol Resolver Interface
  * @author Jack Xu @ EthSign
  */
-interface ISPResolver {
-    function didReceiveAttestation(address attester, uint256 schemaId, uint256 attestationId) external payable;
+interface ISPHook {
+    function didReceiveAttestation(
+        address attester,
+        uint256 schemaId,
+        uint256 attestationId,
+        bytes calldata extraData
+    )
+        external
+        payable;
 
     function didReceiveAttestation(
         address attester,
         uint256 schemaId,
         uint256 attestationId,
         IERC20 resolverFeeERC20Token,
-        uint256 resolverFeeERC20Amount
+        uint256 resolverFeeERC20Amount,
+        bytes calldata extraData
     )
         external;
 
-    function didReceiveRevocation(address attester, uint256 schemaId, uint256 attestationId) external payable;
+    function didReceiveRevocation(
+        address attester,
+        uint256 schemaId,
+        uint256 attestationId,
+        bytes calldata extraData
+    )
+        external
+        payable;
 
     function didReceiveRevocation(
         address attester,
         uint256 schemaId,
         uint256 attestationId,
         IERC20 resolverFeeERC20Token,
-        uint256 resolverFeeERC20Amount
+        uint256 resolverFeeERC20Amount,
+        bytes calldata extraData
     )
         external;
 }

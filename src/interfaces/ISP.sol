@@ -73,45 +73,50 @@ interface ISP is IVersionable {
      * @param indexingKey Used by the frontend to aid indexing.
      * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
      * otherwise.
+     * @param extraData This is forwarded to the resolver directly.
      * @return attestationId The assigned ID of the attestation.
      */
     function attest(
         Attestation calldata attestation,
         string calldata indexingKey,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external
         returns (uint256 attestationId);
 
     /**
-     * @notice Makes an attestation where the schema resolver expects ETH payment.
+     * @notice Makes an attestation where the schema hook expects ETH payment.
      * @dev Emits `AttestationMade`.
      * @param attestation See `Attestation`.
-     * @param resolverFeesETH Amount of funds to send to the resolver.
+     * @param resolverFeesETH Amount of funds to send to the hook.
      * @param indexingKey Used by the frontend to aid indexing.
      * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
      * otherwise.
+     * @param extraData This is forwarded to the resolver directly.
      * @return attestationId The assigned ID of the attestation.
      */
     function attest(
         Attestation calldata attestation,
         uint256 resolverFeesETH,
         string calldata indexingKey,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external
         payable
         returns (uint256 attestationId);
 
     /**
-     * @notice Makes an attestation where the schema resolver expects ERC20 payment.
+     * @notice Makes an attestation where the schema hook expects ERC20 payment.
      * @dev Emits `AttestationMade`.
      * @param attestation See `Attestation`.
      * @param resolverFeesERC20Token ERC20 token address used for payment.
-     * @param resolverFeesERC20Amount Amount of funds to send to the resolver.
+     * @param resolverFeesERC20Amount Amount of funds to send to the hook.
      * @param indexingKey Used by the frontend to aid indexing.
      * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
      * otherwise.
+     * @param extraData This is forwarded to the resolver directly.
      * @return attestationId The assigned ID of the attestation.
      */
     function attest(
@@ -119,7 +124,8 @@ interface ISP is IVersionable {
         IERC20 resolverFeesERC20Token,
         uint256 resolverFeesERC20Amount,
         string calldata indexingKey,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external
         returns (uint256 attestationId);
@@ -146,41 +152,52 @@ interface ISP is IVersionable {
      * @param attestationId An existing attestation ID.
      * @param reason The revocation reason. This is only emitted as an event to save gas.
      * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated revocation.
+     * @param extraData This is forwarded to the resolver directly.
      */
-    function revoke(uint256 attestationId, string calldata reason, bytes calldata delegateSignature) external;
+    function revoke(
+        uint256 attestationId,
+        string calldata reason,
+        bytes calldata delegateSignature,
+        bytes calldata extraData
+    )
+        external;
 
     /**
-     * @notice Revokes an existing revocable attestation where the schema resolver expects ERC20 payment.
+     * @notice Revokes an existing revocable attestation where the schema hook expects ERC20 payment.
      * @dev Emits `AttestationRevoked`. Must be called by the attester.
      * @param attestationId An existing attestation ID.
      * @param reason The revocation reason. This is only emitted as an event to save gas.
-     * @param resolverFeesETH Amount of funds to send to the resolver.
+     * @param resolverFeesETH Amount of funds to send to the hook.
      * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated revocation.
+     * @param extraData This is forwarded to the resolver directly.
      */
     function revoke(
         uint256 attestationId,
         string calldata reason,
         uint256 resolverFeesETH,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external
         payable;
 
     /**
-     * @notice Revokes an existing revocable attestation where the schema resolver expects ERC20 payment.
+     * @notice Revokes an existing revocable attestation where the schema hook expects ERC20 payment.
      * @dev Emits `AttestationRevoked`. Must be called by the attester.
      * @param attestationId An existing attestation ID.
      * @param reason The revocation reason. This is only emitted as an event to save gas.
      * @param resolverFeesERC20Token ERC20 token address used for payment.
-     * @param resolverFeesERC20Amount Amount of funds to send to the resolver.
+     * @param resolverFeesERC20Amount Amount of funds to send to the hook.
      * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated revocation.
+     * @param extraData This is forwarded to the resolver directly.
      */
     function revoke(
         uint256 attestationId,
         string calldata reason,
         IERC20 resolverFeesERC20Token,
         uint256 resolverFeesERC20Amount,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external;
 
@@ -209,33 +226,36 @@ interface ISP is IVersionable {
     function attestBatch(
         Attestation[] calldata attestations,
         string[] calldata indexingKeys,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external
         returns (uint256[] calldata attestationIds);
 
     /**
-     * @notice Batch attests where the schema resolver expects ETH payment.
+     * @notice Batch attests where the schema hook expects ETH payment.
      */
     function attestBatch(
         Attestation[] calldata attestations,
         uint256[] calldata resolverFeesETH,
         string[] calldata indexingKeys,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external
         payable
         returns (uint256[] calldata attestationIds);
 
     /**
-     * @notice Batch attests where the schema resolver expects ERC20 payment.
+     * @notice Batch attests where the schema hook expects ERC20 payment.
      */
     function attestBatch(
         Attestation[] calldata attestations,
         IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount,
         string[] calldata indexingKeys,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external
         returns (uint256[] calldata attestationIds);
@@ -256,31 +276,34 @@ interface ISP is IVersionable {
     function revokeBatch(
         uint256[] calldata attestationIds,
         string[] calldata reasons,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external;
 
     /**
-     * @notice Batch revokes revocable on-chain attestations where the schema resolver expects ETH payment.
+     * @notice Batch revokes revocable on-chain attestations where the schema hook expects ETH payment.
      */
     function revokeBatch(
         uint256[] calldata attestationIds,
         string[] calldata reasons,
         uint256[] calldata resolverFeesETH,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external
         payable;
 
     /**
-     * @notice Batch revokes revocable on-chain attestations where the schema resolver expects ERC20 payment.
+     * @notice Batch revokes revocable on-chain attestations where the schema hook expects ERC20 payment.
      */
     function revokeBatch(
         uint256[] calldata attestationIds,
         string[] calldata reasons,
         IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount,
-        bytes calldata delegateSignature
+        bytes calldata delegateSignature,
+        bytes calldata extraData
     )
         external;
 

@@ -58,11 +58,11 @@ contract SPTest is Test {
         Schema memory schema1Actual = sp.getSchema(schemaIds[1]);
         assertEq(schema0Expected.data, schema0Actual.data);
         assertEq(schema0Expected.revocable, schema0Actual.revocable);
-        assertEq(address(schema0Expected.resolver), address(schema0Actual.resolver));
+        assertEq(address(schema0Expected.hook), address(schema0Actual.hook));
         assertEq(schema0Expected.maxValidFor, schema0Actual.maxValidFor);
         assertEq(schema1Expected.data, schema1Actual.data);
         assertEq(schema1Expected.revocable, schema1Actual.revocable);
-        assertEq(address(schema1Expected.resolver), address(schema1Actual.resolver));
+        assertEq(address(schema1Expected.hook), address(schema1Actual.hook));
         assertEq(schema1Expected.maxValidFor, schema1Actual.maxValidFor);
     }
 
@@ -84,20 +84,20 @@ contract SPTest is Test {
             )
         );
         vm.prank(prankSender);
-        sp.attestBatch(attestations, indexingKeys, "");
+        sp.attestBatch(attestations, indexingKeys, "", "");
         // Reset and trigger `SchemaNonexistent`
         (attestations,) = _createMockAttestations(schemaIds);
         attestations[1].schemaId = 100_000;
         vm.expectRevert(abi.encodeWithSelector(SchemaNonexistent.selector, attestations[1].schemaId));
         vm.prank(prankSender);
-        sp.attestBatch(attestations, indexingKeys, "");
+        sp.attestBatch(attestations, indexingKeys, "", "");
         // Reset and trigger `AttestationNonexistent` for a linked attestation
         (attestations,) = _createMockAttestations(schemaIds);
         uint256 nonexistentAttestationId = 100_000;
         attestations[1].linkedAttestationId = nonexistentAttestationId;
         vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, nonexistentAttestationId));
         vm.prank(prankSender);
-        sp.attestBatch(attestations, indexingKeys, "");
+        sp.attestBatch(attestations, indexingKeys, "", "");
         // Reset and trigger `AttestationWrongAttester` for a linked attestation
         (attestations,) = _createMockAttestations(schemaIds);
         attestations[1].attester = prankRecipient0;
@@ -105,17 +105,17 @@ contract SPTest is Test {
         vm.expectEmit();
         emit AttestationMade(attestationId0, indexingKeys[0]);
         vm.prank(prankSender);
-        sp.attest(attestations[0], indexingKeys[0], "");
+        sp.attest(attestations[0], indexingKeys[0], "", "");
         vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector, prankSender, prankRecipient0));
         vm.prank(prankRecipient0);
-        sp.attest(attestations[1], indexingKeys[1], "");
+        sp.attest(attestations[1], indexingKeys[1], "", "");
         // Reset and make attest normally
         (attestations,) = _createMockAttestations(schemaIds);
         attestations[1].linkedAttestationId = attestationId0;
         vm.expectEmit();
         emit AttestationMade(attestationId0 + 1, indexingKeys[1]);
         vm.prank(prankSender);
-        sp.attest(attestations[1], indexingKeys[1], "");
+        sp.attest(attestations[1], indexingKeys[1], "", "");
         // Check storage
         Attestation memory attestation0Actual = sp.getAttestation(attestationId0);
         Attestation memory attestation1Actual = sp.getAttestation(attestationId0 + 1);
@@ -132,7 +132,7 @@ contract SPTest is Test {
         // Make two normal attestations
         (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
         vm.prank(prankSender);
-        uint256[] memory attestationIds = sp.attestBatch(attestations, indexingKeys, "");
+        uint256[] memory attestationIds = sp.attestBatch(attestations, indexingKeys, "", "");
         string[] memory reasons = _createMockReasons();
         // Trigger `AttestationNonexistent`
         uint256 originalAttestationid = attestationIds[0];
@@ -140,15 +140,15 @@ contract SPTest is Test {
         attestationIds[0] = fakeAttestationId;
         vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, fakeAttestationId));
         vm.prank(prankSender);
-        sp.revokeBatch(attestationIds, reasons, "");
+        sp.revokeBatch(attestationIds, reasons, "", "");
         attestationIds[0] = originalAttestationid;
         // Trigger `AttestationIrrevocable`
         vm.expectRevert(abi.encodeWithSelector(AttestationIrrevocable.selector, schemaIds[1], attestationIds[1]));
         vm.prank(prankSender);
-        sp.revokeBatch(attestationIds, reasons, "");
+        sp.revokeBatch(attestationIds, reasons, "", "");
         // Trigger `AttestationWrongAttester`
         vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector, prankSender, address(this)));
-        sp.revokeBatch(attestationIds, reasons, "");
+        sp.revokeBatch(attestationIds, reasons, "", "");
     }
 
     function test_revoke() public {
@@ -159,18 +159,18 @@ contract SPTest is Test {
         // Make two normal attestations
         (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
         vm.prank(prankSender);
-        uint256[] memory attestationIds = sp.attestBatch(attestations, indexingKeys, "");
+        uint256[] memory attestationIds = sp.attestBatch(attestations, indexingKeys, "", "");
         string[] memory reasons = _createMockReasons();
         // Revoke normally
         vm.expectEmit();
         emit AttestationRevoked(attestationIds[0], reasons[0]);
         emit AttestationRevoked(attestationIds[1], reasons[1]);
         vm.prank(prankSender);
-        sp.revokeBatch(attestationIds, reasons, "");
+        sp.revokeBatch(attestationIds, reasons, "", "");
         // Revoke again and trigger `AttestationAlreadyRevoked`
         vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector, attestationIds[0]));
         vm.prank(prankSender);
-        sp.revokeBatch(attestationIds, reasons, "");
+        sp.revokeBatch(attestationIds, reasons, "", "");
     }
 
     function test_attestOffchain() public {
@@ -226,13 +226,13 @@ contract SPTest is Test {
         bytes32 hash = sp.getDelegatedAttestHash(attestations[0]);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
         // Delegate attest batch
-        sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s));
+        sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s), "");
         Attestation memory attestation0Actual = sp.getAttestation(attestationId0);
         assertEq(attestation0Actual.attester, signer);
         // Alter attestation after generating signature, should fail signature check
         attestations[0].attester = prankSender;
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s));
+        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
         attestations[0].attester = signer;
         // Try to make signer sign for someone else, should fail checks
         // Altering the first reference attester, should revert with `InvalidDelegateSignature`
@@ -240,7 +240,7 @@ contract SPTest is Test {
         hash = sp.getDelegatedAttestBatchHash(attestations);
         (v, r, s) = vm.sign(signerPk, hash);
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s));
+        sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s), "");
     }
 
     function test_attest_batch_delegated() public {
@@ -257,7 +257,7 @@ contract SPTest is Test {
         bytes32 hash = sp.getDelegatedAttestBatchHash(attestations);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
         // Delegate attest batch
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s));
+        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
         Attestation memory attestation0Actual = sp.getAttestation(attestationId0);
         Attestation memory attestation1Actual = sp.getAttestation(attestationId0 + 1);
         assertEq(attestation0Actual.attester, signer);
@@ -265,7 +265,7 @@ contract SPTest is Test {
         // Alter attestation after generating signature, should fail signature check
         attestations[1].attester = prankSender;
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s));
+        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
         attestations[1].attester = signer;
         // Try to make signer sign for someone else, should fail checks
         // Altering the first reference attester, should revert with `InvalidDelegateSignature`
@@ -273,14 +273,14 @@ contract SPTest is Test {
         hash = sp.getDelegatedAttestBatchHash(attestations);
         (v, r, s) = vm.sign(signerPk, hash);
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s));
+        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
         attestations[0].attester = signer;
         // Altering the second attester, should fail attester consistency check
         attestations[1].attester = prankSender;
         hash = sp.getDelegatedAttestBatchHash(attestations);
         (v, r, s) = vm.sign(signerPk, hash);
         vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector, signer, prankSender));
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s));
+        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
     }
 
     function test_attest_offchain_delegated() public {
@@ -324,15 +324,15 @@ contract SPTest is Test {
         attestations[0].attester = signer;
         bytes32 hash = sp.getDelegatedAttestHash(attestations[0]);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
-        sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s));
+        sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s), "");
         // Delegated revoke
         // Try to fail on purpose first
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.revoke(attestationId0, "", _vrsToSignature(v, r, s)); // Still using the attest signature
+        sp.revoke(attestationId0, "", _vrsToSignature(v, r, s), ""); // Still using the attest signature
         // Revoke correctly
         hash = sp.getDelegatedRevokeHash(attestationId0);
         (v, r, s) = vm.sign(signerPk, hash);
-        sp.revoke(attestationId0, "", _vrsToSignature(v, r, s));
+        sp.revoke(attestationId0, "", _vrsToSignature(v, r, s), "");
     }
 
     function test_revoke_batch_delegated() public {
@@ -351,17 +351,17 @@ contract SPTest is Test {
         attestations[1].attester = signer;
         bytes32 hash = sp.getDelegatedAttestBatchHash(attestations);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s));
+        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
         // Revoke batch
         // Sign using the wrong signer first
         (, uint256 signerPk1) = makeAddrAndKey("signer1");
         hash = sp.getDelegatedRevokeBatchHash(attestationIds);
         (v, r, s) = vm.sign(signerPk1, hash);
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.revokeBatch(attestationIds, _createMockReasons(), _vrsToSignature(v, r, s));
+        sp.revokeBatch(attestationIds, _createMockReasons(), _vrsToSignature(v, r, s), "");
         // Revoke correctly with the correct signer
         (v, r, s) = vm.sign(signerPk, hash);
-        sp.revokeBatch(attestationIds, _createMockReasons(), _vrsToSignature(v, r, s));
+        sp.revokeBatch(attestationIds, _createMockReasons(), _vrsToSignature(v, r, s), "");
     }
 
     function test_revoke_offchain_delegated() public {
@@ -412,14 +412,14 @@ contract SPTest is Test {
             revocable: true,
             dataLocation: DataLocation.ONCHAIN,
             maxValidFor: 0,
-            resolver: mockResolver,
+            hook: mockResolver,
             data: "stupid0"
         });
         Schema memory schema1 = Schema({
             revocable: false,
             dataLocation: DataLocation.ONCHAIN,
             maxValidFor: 100,
-            resolver: mockResolver,
+            hook: mockResolver,
             data: "stupid1"
         });
         Schema[] memory schemas = new Schema[](2);
