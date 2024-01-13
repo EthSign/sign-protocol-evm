@@ -272,6 +272,14 @@ interface ISP is IVersionable {
     function getAttestation(uint256 attestationId) external view returns (Attestation calldata);
 
     /**
+     * @notice Returns the specified `OffchainAttestation`.
+     */
+    function getOffchainAttestation(string calldata offchainAttestationId)
+        external
+        view
+        returns (OffchainAttestation calldata);
+
+    /**
      * @notice Returns the hash that will be used to authorize a delegated attestation.
      */
     function getDelegatedAttestHash(Attestation calldata attestation) external pure returns (bytes32);
@@ -316,14 +324,6 @@ interface ISP is IVersionable {
         external
         pure
         returns (bytes32);
-
-    /**
-     * @notice Returns the specified `OffchainAttestation`.
-     */
-    function getOffchainAttestation(string calldata offchainAttestationId)
-        external
-        view
-        returns (OffchainAttestation calldata);
 
     /**
      * @notice Returns the current schema counter. This is incremented for each `Schema` registered.
