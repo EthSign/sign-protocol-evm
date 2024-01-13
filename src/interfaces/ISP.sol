@@ -73,7 +73,7 @@ interface ISP is IVersionable {
      * @dev Emits `AttestationMade`.
      * @param attestation See `Attestation`.
      * @param indexingKey Used by the frontend to aid indexing.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation.
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` otherwise.
      * @return attestationId The assigned ID of the attestation.
      */
     function attest(Attestation calldata attestation, string calldata indexingKey, bytes calldata delegateSignature)
@@ -86,7 +86,7 @@ interface ISP is IVersionable {
      * @param attestation See `Attestation`.
      * @param resolverFeesETH Amount of funds to send to the resolver.
      * @param indexingKey Used by the frontend to aid indexing.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation.
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` otherwise.
      * @return attestationId The assigned ID of the attestation.
      */
     function attest(
@@ -103,7 +103,7 @@ interface ISP is IVersionable {
      * @param resolverFeesERC20Token ERC20 token address used for payment.
      * @param resolverFeesERC20Amount Amount of funds to send to the resolver.
      * @param indexingKey Used by the frontend to aid indexing.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation.
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` otherwise.
      * @return attestationId The assigned ID of the attestation.
      */
     function attest(
@@ -118,8 +118,8 @@ interface ISP is IVersionable {
      * @notice Timestamps an off-chain data ID.
      * @dev Emits `OffchainAttestationMade`.
      * @param offchainAttestationId The off-chain data ID.
-     * @param delegateAttester The delegated attester that authorized the caller to attest on their behalf.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation.
+     * @param delegateAttester An optional delegated attester that authorized the caller to attest on their behalf if this is a delegated attestation. Use `address(0)` otherwise.
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` otherwise. Use `""` otherwise.
      */
     function attestOffchain(
         string calldata offchainAttestationId,
