@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GNU AGPLv3
 pragma solidity ^0.8.20;
 
-import {ISP} from "../interfaces/ISP.sol";
-import {ISPResolver} from "../interfaces/ISPResolver.sol";
-import {Schema} from "../models/Schema.sol";
-import {Attestation, OffchainAttestation} from "../models/Attestation.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ISP } from "../interfaces/ISP.sol";
+import { ISPResolver } from "../interfaces/ISPResolver.sol";
+import { Schema } from "../models/Schema.sol";
+import { Attestation, OffchainAttestation } from "../models/Attestation.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     /// @custom:storage-location erc7201:ethsign.SP
@@ -43,7 +43,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         if (block.chainid == 7001) {
             initialize(); // Special case for ZetaChain, where Foundry scripting fails
         }
-        if (block.chainid != 31337) {
+        if (block.chainid != 31_337) {
             _disableInitializers();
         }
     }
@@ -66,7 +66,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function attest(Attestation calldata attestation, string calldata indexingKey, bytes calldata delegateSignature)
+    function attest(
+        Attestation calldata attestation,
+        string calldata indexingKey,
+        bytes calldata delegateSignature
+    )
         external
         override
         returns (uint256)
@@ -85,7 +89,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         Attestation[] calldata attestations,
         string[] calldata indexingKeys,
         bytes calldata delegateSignature
-    ) external override returns (uint256[] memory attestationIds) {
+    )
+        external
+        override
+        returns (uint256[] memory attestationIds)
+    {
         bool delegateMode = delegateSignature.length != 0;
         address attester = attestations[0].attester;
         if (delegateMode) {
@@ -110,7 +118,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         uint256 resolverFeesETH,
         string calldata indexingKey,
         bytes calldata delegateSignature
-    ) external payable returns (uint256) {
+    )
+        external
+        payable
+        returns (uint256)
+    {
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             __checkDelegationSignature(attestation.attester, getDelegatedAttestHash(attestation), delegateSignature);
@@ -118,7 +130,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey, delegateMode);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
-            resolver.didReceiveAttestation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
+            resolver.didReceiveAttestation{ value: resolverFeesETH }(_msgSender(), schemaId, attestationId);
         }
         return attestationId;
     }
@@ -128,7 +140,12 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         uint256[] calldata resolverFeesETH,
         string[] calldata indexingKeys,
         bytes calldata delegateSignature
-    ) external payable override returns (uint256[] memory attestationIds) {
+    )
+        external
+        payable
+        override
+        returns (uint256[] memory attestationIds)
+    {
         bool delegateMode = delegateSignature.length != 0;
         address attester = attestations[0].attester;
         if (delegateMode) {
@@ -143,7 +160,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             attestationIds[i] = attestationId;
             ISPResolver resolver = __getResolverFromAttestationId(attestationId);
             if (address(resolver) != address(0)) {
-                resolver.didReceiveAttestation{value: resolverFeesETH[i]}(_msgSender(), schemaId, attestationId);
+                resolver.didReceiveAttestation{ value: resolverFeesETH[i] }(_msgSender(), schemaId, attestationId);
             }
         }
     }
@@ -154,7 +171,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         uint256 resolverFeesERC20Amount,
         string calldata indexingKey,
         bytes calldata delegateSignature
-    ) external override returns (uint256) {
+    )
+        external
+        override
+        returns (uint256)
+    {
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             __checkDelegationSignature(attestation.attester, getDelegatedAttestHash(attestation), delegateSignature);
@@ -175,7 +196,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         uint256[] memory resolverFeesERC20Amount,
         string[] memory indexingKeys,
         bytes memory delegateSignature
-    ) external override returns (uint256[] memory attestationIds) {
+    )
+        external
+        override
+        returns (uint256[] memory attestationIds)
+    {
         bool delegateMode = delegateSignature.length != 0;
         address attester = attestations[0].attester;
         if (delegateMode) {
@@ -201,7 +226,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         string calldata offchainAttestationId,
         address delegateAttester,
         bytes calldata delegateSignature
-    ) external override {
+    )
+        external
+        override
+    {
         address attester = _msgSender();
         if (delegateSignature.length != 0) {
             __checkDelegationSignature(
@@ -216,7 +244,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         string[] calldata attestationIds,
         address delegateAttester,
         bytes calldata delegateSignature
-    ) external override {
+    )
+        external
+        override
+    {
         address attester = _msgSender();
         if (delegateSignature.length != 0) {
             __checkDelegationSignature(
@@ -229,7 +260,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function revoke(uint256 attestationId, string calldata reason, bytes calldata delegateSignature)
+    function revoke(
+        uint256 attestationId,
+        string calldata reason,
+        bytes calldata delegateSignature
+    )
         external
         override
     {
@@ -248,7 +283,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function revokeBatch(uint256[] calldata attestationIds, string[] calldata reasons, bytes calldata delegateSignature)
+    function revokeBatch(
+        uint256[] calldata attestationIds,
+        string[] calldata reasons,
+        bytes calldata delegateSignature
+    )
         external
         override
     {
@@ -277,7 +316,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         string calldata reason,
         uint256 resolverFeesETH,
         bytes calldata delegateSignature
-    ) external payable override {
+    )
+        external
+        payable
+        override
+    {
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
@@ -286,7 +329,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         uint256 schemaId = _revoke(attestationId, reason, delegateMode);
         ISPResolver resolver = __getResolverFromAttestationId(attestationId);
         if (address(resolver) != address(0)) {
-            resolver.didReceiveRevocation{value: resolverFeesETH}(_msgSender(), schemaId, attestationId);
+            resolver.didReceiveRevocation{ value: resolverFeesETH }(_msgSender(), schemaId, attestationId);
         }
     }
 
@@ -295,7 +338,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         string[] memory reasons,
         uint256[] memory resolverFeesETH,
         bytes memory delegateSignature
-    ) external payable override {
+    )
+        external
+        payable
+        override
+    {
         address currentAttester = _msgSender();
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
@@ -311,7 +358,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             uint256 schemaId = _revoke(attestationIds[i], reasons[i], delegateMode);
             ISPResolver resolver = __getResolverFromAttestationId(attestationIds[i]);
             if (address(resolver) != address(0)) {
-                resolver.didReceiveRevocation{value: resolverFeesETH[i]}(_msgSender(), schemaId, attestationIds[i]);
+                resolver.didReceiveRevocation{ value: resolverFeesETH[i] }(_msgSender(), schemaId, attestationIds[i]);
             }
         }
     }
@@ -322,7 +369,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         IERC20 resolverFeesERC20Token,
         uint256 resolverFeesERC20Amount,
         bytes calldata delegateSignature
-    ) external override {
+    )
+        external
+        override
+    {
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
@@ -343,7 +393,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         IERC20[] memory resolverFeesERC20Tokens,
         uint256[] memory resolverFeesERC20Amount,
         bytes memory delegateSignature
-    ) external override {
+    )
+        external
+        override
+    {
         address currentAttester = _msgSender();
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
@@ -370,7 +423,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         string calldata offchainAttestationId,
         string calldata reason,
         bytes calldata delegateSignature
-    ) external override {
+    )
+        external
+        override
+    {
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             address storageAttester = _getSPStorage()._offchainAttestationRegistry[offchainAttestationId].attester;
@@ -385,7 +441,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         string[] calldata offchainAttestationIds,
         string[] calldata reasons,
         bytes calldata delegateSignature
-    ) external override {
+    )
+        external
+        override
+    {
         address currentAttester = _msgSender();
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
@@ -489,7 +548,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         emit SchemaRegistered(schemaId);
     }
 
-    function _attest(Attestation memory attestation, string memory indexingKey, bool delegateMode)
+    function _attest(
+        Attestation memory attestation,
+        string memory indexingKey,
+        bool delegateMode
+    )
         internal
         returns (uint256 schemaId, uint256 attestationId)
     {
@@ -534,7 +597,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         emit OffchainAttestationMade(offchainAttestationId);
     }
 
-    function _revoke(uint256 attestationId, string memory reason, bool delegateMode)
+    function _revoke(
+        uint256 attestationId,
+        string memory reason,
+        bool delegateMode
+    )
         internal
         returns (uint256 schemaId)
     {
@@ -551,7 +618,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return a.schemaId;
     }
 
-    function _revokeOffchain(string calldata offchainAttestationId, string calldata reason, bool delegateMode)
+    function _revokeOffchain(
+        string calldata offchainAttestationId,
+        string calldata reason,
+        bool delegateMode
+    )
         internal
     {
         SPStorage storage $ = _getSPStorage();
@@ -569,9 +640,14 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         emit OffchainAttestationRevoked(offchainAttestationId, reason);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
+    // solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner { }
 
-    function __checkDelegationSignature(address delegateAttester, bytes32 hash, bytes memory delegateSignature)
+    function __checkDelegationSignature(
+        address delegateAttester,
+        bytes32 hash,
+        bytes memory delegateSignature
+    )
         internal
         view
     {

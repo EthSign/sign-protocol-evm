@@ -6,9 +6,22 @@
     "lib": "lib",
     "test": "test"
   },
-  "scripts": {},
+  "scripts": {
+    "clean": "forge clean && hardhat clean && rm -rf cache_hardhat",
+    "build": "forge build",
+    "build:hh": "hardhat compile",
+    "lint:sol": "forge fmt --check && solhint {script,src,test}/**/*.sol",
+    "prettier:check": "prettier --check **/*.{json,md,yml} --ignore-path=.prettierignore",
+    "prettier:write": "prettier --write **/*.{json,md,yml} --ignore-path=.prettierignore",
+    "test": "forge test",
+    "test:coverage": "forge coverage"
+  },
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "@openzeppelin/contracts": "5.0.1",
+    "@openzeppelin/contracts-upgradeable": "5.0.1"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-foundry": "^1.1.1",
     "@nomicfoundation/hardhat-toolbox-viem": "^2.0.0",
@@ -17,8 +30,12 @@
     "@openzeppelin/hardhat-upgrades": "^3.0.2",
     "@types/node": ">=16.0.0",
     "dotenv": "^16.3.1",
+    "ds-test": "github:dapphub/ds-test",
+    "forge-std": "github:foundry-rs/forge-std#v1",
     "hardhat": "^2.19.4",
     "hardhat-deploy": "^0.11.45",
+    "prettier": "^3.2.1",
+    "solhint": "^4.1.1",
     "solidity-docgen": "0.6.0-beta.36",
     "ts-node": ">=8.0.0",
     "typescript": "~5.0.4",

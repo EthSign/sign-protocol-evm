@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ISPResolver} from "../interfaces/ISPResolver.sol";
-import {IVersionable} from "./IVersionable.sol";
-import {Schema} from "../models/Schema.sol";
-import {Attestation, OffchainAttestation} from "../models/Attestation.sol";
-import {DataLocation} from "../models/DataLocation.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IVersionable } from "./IVersionable.sol";
+import { Schema } from "../models/Schema.sol";
+import { Attestation, OffchainAttestation } from "../models/Attestation.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Sign Protocol Interface
@@ -73,10 +71,15 @@ interface ISP is IVersionable {
      * @dev Emits `AttestationMade`.
      * @param attestation See `Attestation`.
      * @param indexingKey Used by the frontend to aid indexing.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` otherwise.
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
+     * otherwise.
      * @return attestationId The assigned ID of the attestation.
      */
-    function attest(Attestation calldata attestation, string calldata indexingKey, bytes calldata delegateSignature)
+    function attest(
+        Attestation calldata attestation,
+        string calldata indexingKey,
+        bytes calldata delegateSignature
+    )
         external
         returns (uint256 attestationId);
 
@@ -86,7 +89,8 @@ interface ISP is IVersionable {
      * @param attestation See `Attestation`.
      * @param resolverFeesETH Amount of funds to send to the resolver.
      * @param indexingKey Used by the frontend to aid indexing.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` otherwise.
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
+     * otherwise.
      * @return attestationId The assigned ID of the attestation.
      */
     function attest(
@@ -94,7 +98,10 @@ interface ISP is IVersionable {
         uint256 resolverFeesETH,
         string calldata indexingKey,
         bytes calldata delegateSignature
-    ) external payable returns (uint256 attestationId);
+    )
+        external
+        payable
+        returns (uint256 attestationId);
 
     /**
      * @notice Makes an attestation where the schema resolver expects ERC20 payment.
@@ -103,7 +110,8 @@ interface ISP is IVersionable {
      * @param resolverFeesERC20Token ERC20 token address used for payment.
      * @param resolverFeesERC20Amount Amount of funds to send to the resolver.
      * @param indexingKey Used by the frontend to aid indexing.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` otherwise.
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
+     * otherwise.
      * @return attestationId The assigned ID of the attestation.
      */
     function attest(
@@ -112,20 +120,25 @@ interface ISP is IVersionable {
         uint256 resolverFeesERC20Amount,
         string calldata indexingKey,
         bytes calldata delegateSignature
-    ) external returns (uint256 attestationId);
+    )
+        external
+        returns (uint256 attestationId);
 
     /**
      * @notice Timestamps an off-chain data ID.
      * @dev Emits `OffchainAttestationMade`.
      * @param offchainAttestationId The off-chain data ID.
-     * @param delegateAttester An optional delegated attester that authorized the caller to attest on their behalf if this is a delegated attestation. Use `address(0)` otherwise.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` otherwise. Use `""` otherwise.
+     * @param delegateAttester An optional delegated attester that authorized the caller to attest on their behalf if
+     * this is a delegated attestation. Use `address(0)` otherwise.
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
+     * otherwise. Use `""` otherwise.
      */
     function attestOffchain(
         string calldata offchainAttestationId,
         address delegateAttester,
         bytes calldata delegateSignature
-    ) external;
+    )
+        external;
 
     /**
      * @notice Revokes an existing revocable attestation.
@@ -149,7 +162,9 @@ interface ISP is IVersionable {
         string calldata reason,
         uint256 resolverFeesETH,
         bytes calldata delegateSignature
-    ) external payable;
+    )
+        external
+        payable;
 
     /**
      * @notice Revokes an existing revocable attestation where the schema resolver expects ERC20 payment.
@@ -166,7 +181,8 @@ interface ISP is IVersionable {
         IERC20 resolverFeesERC20Token,
         uint256 resolverFeesERC20Amount,
         bytes calldata delegateSignature
-    ) external;
+    )
+        external;
 
     /**
      * @notice Revokes an existing offchain attestation.
@@ -179,7 +195,8 @@ interface ISP is IVersionable {
         string calldata offchainAttestationId,
         string calldata reason,
         bytes calldata delegateSignature
-    ) external;
+    )
+        external;
 
     /**
      * @notice Batch registers a Schema.
@@ -193,7 +210,9 @@ interface ISP is IVersionable {
         Attestation[] calldata attestations,
         string[] calldata indexingKeys,
         bytes calldata delegateSignature
-    ) external returns (uint256[] calldata attestationIds);
+    )
+        external
+        returns (uint256[] calldata attestationIds);
 
     /**
      * @notice Batch attests where the schema resolver expects ETH payment.
@@ -203,7 +222,10 @@ interface ISP is IVersionable {
         uint256[] calldata resolverFeesETH,
         string[] calldata indexingKeys,
         bytes calldata delegateSignature
-    ) external payable returns (uint256[] calldata attestationIds);
+    )
+        external
+        payable
+        returns (uint256[] calldata attestationIds);
 
     /**
      * @notice Batch attests where the schema resolver expects ERC20 payment.
@@ -214,7 +236,9 @@ interface ISP is IVersionable {
         uint256[] calldata resolverFeesERC20Amount,
         string[] calldata indexingKeys,
         bytes calldata delegateSignature
-    ) external returns (uint256[] calldata attestationIds);
+    )
+        external
+        returns (uint256[] calldata attestationIds);
 
     /**
      * @notice Batch timestamps off-chain data IDs.
@@ -223,12 +247,17 @@ interface ISP is IVersionable {
         string[] calldata offchainAttestationIds,
         address delegateAttester,
         bytes calldata delegateSignature
-    ) external;
+    )
+        external;
 
     /**
      * @notice Batch revokes revocable on-chain attestations.
      */
-    function revokeBatch(uint256[] calldata attestationIds, string[] calldata reasons, bytes calldata delegateSignature)
+    function revokeBatch(
+        uint256[] calldata attestationIds,
+        string[] calldata reasons,
+        bytes calldata delegateSignature
+    )
         external;
 
     /**
@@ -239,7 +268,9 @@ interface ISP is IVersionable {
         string[] calldata reasons,
         uint256[] calldata resolverFeesETH,
         bytes calldata delegateSignature
-    ) external payable;
+    )
+        external
+        payable;
 
     /**
      * @notice Batch revokes revocable on-chain attestations where the schema resolver expects ERC20 payment.
@@ -250,7 +281,8 @@ interface ISP is IVersionable {
         IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount,
         bytes calldata delegateSignature
-    ) external;
+    )
+        external;
 
     /**
      * @notice Batch revokes off-chain attestations.
@@ -259,7 +291,8 @@ interface ISP is IVersionable {
         string[] calldata offchainAttestationIds,
         string[] calldata reasons,
         bytes calldata delegateSignature
-    ) external;
+    )
+        external;
 
     /**
      * @notice Returns the specified `Schema`.

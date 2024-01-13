@@ -1,21 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+// solhint-disable no-global-import
+// solhint-disable no-console
 import "forge-std/Test.sol";
 import "forge-std/console2.sol";
-import {SP} from "../src/core/SP.sol";
-import {ISP} from "../src/interfaces/ISP.sol";
-import {MockResolver} from "../src/mock/MockResolver.sol";
-import {Schema} from "../src/models/Schema.sol";
-import {DataLocation} from "../src/models/DataLocation.sol";
-import {Attestation, OffchainAttestation} from "../src/models/Attestation.sol";
-import {MockERC20} from "../src/mock/MockERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SP } from "../src/core/SP.sol";
+import { ISP } from "../src/interfaces/ISP.sol";
+import { MockResolver } from "../src/mock/MockResolver.sol";
+import { Schema } from "../src/models/Schema.sol";
+import { DataLocation } from "../src/models/DataLocation.sol";
+import { Attestation, OffchainAttestation } from "../src/models/Attestation.sol";
 
 contract SPTest is Test {
     ISP public sp;
     MockResolver public mockResolver;
-    MockERC20 public mockERC20;
     address public prankSender = 0x55D22d83752a9bE59B8959f97FCf3b2CAbca5094;
     address public prankRecipient0 = 0x003BBE6Da0EB4963856395829030FcE383a14C53;
     address public prankRecipient1 = 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045;
@@ -41,7 +40,6 @@ contract SPTest is Test {
         sp = new SP();
         SP(address(sp)).initialize();
         mockResolver = new MockResolver();
-        mockERC20 = new MockERC20();
     }
 
     // NON DELEGATED TEST CASES
@@ -89,13 +87,13 @@ contract SPTest is Test {
         sp.attestBatch(attestations, indexingKeys, "");
         // Reset and trigger `SchemaNonexistent`
         (attestations,) = _createMockAttestations(schemaIds);
-        attestations[1].schemaId = 100000;
+        attestations[1].schemaId = 100_000;
         vm.expectRevert(abi.encodeWithSelector(SchemaNonexistent.selector, attestations[1].schemaId));
         vm.prank(prankSender);
         sp.attestBatch(attestations, indexingKeys, "");
         // Reset and trigger `AttestationNonexistent` for a linked attestation
         (attestations,) = _createMockAttestations(schemaIds);
-        uint256 nonexistentAttestationId = 100000;
+        uint256 nonexistentAttestationId = 100_000;
         attestations[1].linkedAttestationId = nonexistentAttestationId;
         vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, nonexistentAttestationId));
         vm.prank(prankSender);
@@ -138,7 +136,7 @@ contract SPTest is Test {
         string[] memory reasons = _createMockReasons();
         // Trigger `AttestationNonexistent`
         uint256 originalAttestationid = attestationIds[0];
-        uint256 fakeAttestationId = 10000;
+        uint256 fakeAttestationId = 10_000;
         attestationIds[0] = fakeAttestationId;
         vm.expectRevert(abi.encodeWithSelector(AttestationNonexistent.selector, fakeAttestationId));
         vm.prank(prankSender);

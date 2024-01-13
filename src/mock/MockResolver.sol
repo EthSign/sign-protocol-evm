@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ISP} from "../interfaces/ISP.sol";
-import {ISPResolver, IERC20} from "../interfaces/ISPResolver.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ISPResolver, IERC20 } from "../interfaces/ISPResolver.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract MockResolverAdmin is OwnableUpgradeable {
     using SafeERC20 for IERC20;
 
-    mapping(uint256 => uint256) public schemaAttestETHFees;
-    mapping(uint256 => mapping(IERC20 => uint256)) public schemaAttestTokenFees;
-    mapping(uint256 => uint256) public attestationETHFees;
-    mapping(uint256 => mapping(IERC20 => uint256)) public attestationTokenFees;
-    mapping(IERC20 => bool) public approvedTokens;
+    mapping(uint256 schemaId => uint256 ethFees) public schemaAttestETHFees;
+    mapping(uint256 schemaId => mapping(IERC20 tokenAddress => uint256 tokenFees)) public schemaAttestTokenFees;
+    mapping(uint256 attestationId => uint256 ethFees) public attestationETHFees;
+    mapping(uint256 attestationId => mapping(IERC20 tokenAddress => uint256 tokenFees)) public attestationTokenFees;
+    mapping(IERC20 tokenAddress => bool approved) public approvedTokens;
 
     event ETHFeesReceived(uint256 attestationId, uint256 amount);
     event TokenFeesReceived(uint256 attestationId, IERC20 token, uint256 amount);
@@ -53,7 +52,9 @@ contract MockResolverAdmin is OwnableUpgradeable {
         uint256 attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount
-    ) internal {
+    )
+        internal
+    {
         if (!approvedTokens[resolverFeeERC20Token]) revert UnapprovedToken();
         uint256 fees = schemaAttestTokenFees[schemaId][resolverFeeERC20Token] == 0
             ? attestationTokenFees[attestationId][resolverFeeERC20Token]
@@ -65,11 +66,16 @@ contract MockResolverAdmin is OwnableUpgradeable {
 }
 
 contract MockResolver is ISPResolver, MockResolverAdmin {
-    function didReceiveAttestation(address attester, uint256 schemaId, uint256 attestationId)
+    function didReceiveAttestation(
+        address attester,
+        uint256 schemaId,
+        uint256 attestationId
+    )
         external
         payable
         override
-    {}
+    // solhint-disable-next-line no-empty-blocks
+    { }
 
     function didReceiveAttestation(
         address attester,
@@ -77,11 +83,18 @@ contract MockResolver is ISPResolver, MockResolverAdmin {
         uint256 attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount
-    ) external override {
+    )
+        external
+        override
+    {
         _receiveTokens(attester, schemaId, attestationId, resolverFeeERC20Token, resolverFeeERC20Amount);
     }
 
-    function didReceiveRevocation(address attester, uint256 schemaId, uint256 attestationId)
+    function didReceiveRevocation(
+        address attester,
+        uint256 schemaId,
+        uint256 attestationId
+    )
         external
         payable
         override
@@ -95,7 +108,10 @@ contract MockResolver is ISPResolver, MockResolverAdmin {
         uint256 attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount
-    ) external override {
+    )
+        external
+        override
+    {
         _receiveTokens(attester, schemaId, attestationId, resolverFeeERC20Token, resolverFeeERC20Amount);
     }
 }
