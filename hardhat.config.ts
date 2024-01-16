@@ -48,7 +48,7 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      mumbai: process.env.POLYGONSCAN_KEY!,
+      polygonMumbai: process.env.POLYGONSCAN_KEY!,
       mantaPacific: process.env.MANTAPACIFIC_KEY!,
       mantaPacificTestnet: process.env.MANTAPACIFIC_TEST_KEY!,
       avax: process.env.SNOWTRACE_KEY!,
@@ -77,8 +77,7 @@ const config: HardhatUserConfig = {
         network: "avax",
         chainId: 43114,
         urls: {
-          apiURL:
-            "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
+          apiURL: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
           browserURL: "https://avascan.info/",
         },
       },

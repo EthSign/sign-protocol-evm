@@ -7,6 +7,7 @@ import { Schema } from "../models/Schema.sol";
 import { Attestation, OffchainAttestation } from "../models/Attestation.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
@@ -521,11 +522,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function getDelegatedAttestHash(Attestation memory attestation) public pure override returns (bytes32) {
-        return keccak256(abi.encode(ATTEST_ACTION_NAME, attestation));
+        return MessageHashUtils.toEthSignedMessageHash(abi.encode(ATTEST_ACTION_NAME, attestation));
     }
 
     function getDelegatedAttestBatchHash(Attestation[] memory attestations) public pure returns (bytes32) {
-        return keccak256(abi.encode(ATTEST_BATCH_ACTION_NAME, attestations));
+        return MessageHashUtils.toEthSignedMessageHash(abi.encode(ATTEST_BATCH_ACTION_NAME, attestations));
     }
 
     function getDelegatedOffchainAttestHash(string memory offchainAttestationId)
@@ -534,7 +535,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         override
         returns (bytes32)
     {
-        return keccak256(abi.encode(ATTEST_OFFCHAIN_ACTION_NAME, offchainAttestationId));
+        return MessageHashUtils.toEthSignedMessageHash(abi.encode(ATTEST_OFFCHAIN_ACTION_NAME, offchainAttestationId));
     }
 
     function getDelegatedOffchainAttestBatchHash(string[] memory offchainAttestationIds)
@@ -542,15 +543,17 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         pure
         returns (bytes32)
     {
-        return keccak256(abi.encode(ATTEST_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds));
+        return MessageHashUtils.toEthSignedMessageHash(
+            abi.encode(ATTEST_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds)
+        );
     }
 
     function getDelegatedRevokeHash(uint256 attestationId) public pure override returns (bytes32) {
-        return keccak256(abi.encode(REVOKE_ACTION_NAME, attestationId));
+        return MessageHashUtils.toEthSignedMessageHash(abi.encode(REVOKE_ACTION_NAME, attestationId));
     }
 
     function getDelegatedRevokeBatchHash(uint256[] memory attestationIds) public pure returns (bytes32) {
-        return keccak256(abi.encode(REVOKE_BATCH_ACTION_NAME, attestationIds));
+        return MessageHashUtils.toEthSignedMessageHash(abi.encode(REVOKE_BATCH_ACTION_NAME, attestationIds));
     }
 
     function getDelegatedOffchainRevokeHash(string memory offchainAttestationId)
@@ -559,7 +562,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         override
         returns (bytes32)
     {
-        return keccak256(abi.encode(REVOKE_OFFCHAIN_ACTION_NAME, offchainAttestationId));
+        return MessageHashUtils.toEthSignedMessageHash(abi.encode(REVOKE_OFFCHAIN_ACTION_NAME, offchainAttestationId));
     }
 
     function getDelegatedOffchainRevokeBatchHash(string[] memory offchainAttestationIds)
@@ -567,7 +570,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         pure
         returns (bytes32)
     {
-        return keccak256(abi.encode(REVOKE_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds));
+        return MessageHashUtils.toEthSignedMessageHash(
+            abi.encode(REVOKE_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds)
+        );
     }
 
     function _register(Schema calldata schema) internal returns (uint256 schemaId) {
