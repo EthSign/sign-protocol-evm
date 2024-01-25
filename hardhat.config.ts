@@ -54,7 +54,7 @@ const config: HardhatUserConfig = {
       avax: process.env.SNOWTRACE_KEY!,
       sepolia: process.env.ETHERSCAN_KEY!,
       mainnet: process.env.ETHERSCAN_KEY!,
-      zetachain_testnet: process.env.ETHERSCAN_KEY!,
+      zetachain_testnet: process.env.ZETASCAN_API_KEY!,
     },
     customChains: [
       {
