@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import { ISP } from "../interfaces/ISP.sol";
 import { ISPHook } from "../interfaces/ISPHook.sol";
+import { ISPGlobalHook } from "../interfaces/ISPGlobalHook.sol";
 import { Schema } from "../models/Schema.sol";
 import { Attestation, OffchainAttestation } from "../models/Attestation.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -20,6 +21,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         mapping(string => OffchainAttestation) _offchainAttestationRegistry;
         uint256 schemaCounter;
         uint256 attestationCounter;
+        ISPGlobalHook globalHook;
     }
 
     // keccak256(abi.encode(uint256(keccak256("ethsign.SP")) - 1)) & ~bytes32(uint256(0xff))
@@ -42,9 +44,6 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
-        if (block.chainid == 7001) {
-            initialize(); // Special case for ZetaChain, where Foundry scripting fails
-        }
         if (block.chainid != 31_337) {
             _disableInitializers();
         }
@@ -58,7 +57,8 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function register(Schema calldata schema) external override returns (uint256 schemaId) {
-        return _register(schema);
+        schemaId = _register(schema);
+        _callGlobalHook();
     }
 
     function registerBatch(Schema[] calldata schemas) external override returns (uint256[] memory schemaIds) {
@@ -66,6 +66,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         for (uint256 i = 0; i < schemas.length; i++) {
             schemaIds[i] = _register(schemas[i]);
         }
+        _callGlobalHook();
     }
 
     function attest(
@@ -85,6 +86,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey, delegateMode);
         ISPHook hook = __getResolverFromAttestationId(attestationId);
         if (address(hook) != address(0)) hook.didReceiveAttestation(_msgSender(), schemaId, attestationId, extraData);
+        _callGlobalHook();
         return attestationId;
     }
 
@@ -115,6 +117,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 hook.didReceiveAttestation(_msgSender(), schemaId, attestationId, extraData);
             }
         }
+        _callGlobalHook();
     }
 
     function attest(
@@ -137,6 +140,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         if (address(hook) != address(0)) {
             hook.didReceiveAttestation{ value: resolverFeesETH }(_msgSender(), schemaId, attestationId, extraData);
         }
+        _callGlobalHook();
         return attestationId;
     }
 
@@ -171,6 +175,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 );
             }
         }
+        _callGlobalHook();
     }
 
     function attest(
@@ -196,6 +201,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount, extraData
             );
         }
+        _callGlobalHook();
         return attestationId;
     }
 
@@ -237,6 +243,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 );
             }
         }
+        _callGlobalHook();
     }
 
     function attestOffchain(
@@ -255,6 +262,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             attester = delegateAttester;
         }
         _attestOffchain(offchainAttestationId, attester);
+        _callGlobalHook();
     }
 
     function attestOffchainBatch(
@@ -275,6 +283,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         for (uint256 i = 0; i < attestationIds.length; i++) {
             _attestOffchain(attestationIds[i], attester);
         }
+        _callGlobalHook();
     }
 
     function revoke(
@@ -299,6 +308,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         if (address(hook) != address(0)) {
             hook.didReceiveRevocation(_msgSender(), schemaId, attestationId, extraData);
         }
+        _callGlobalHook();
     }
 
     function revokeBatch(
@@ -328,6 +338,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 hook.didReceiveRevocation(_msgSender(), schemaId, attestationIds[i], extraData);
             }
         }
+        _callGlobalHook();
     }
 
     function revoke(
@@ -351,6 +362,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         if (address(hook) != address(0)) {
             hook.didReceiveRevocation{ value: resolverFeesETH }(_msgSender(), schemaId, attestationId, extraData);
         }
+        _callGlobalHook();
     }
 
     function revokeBatch(
@@ -384,6 +396,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 );
             }
         }
+        _callGlobalHook();
     }
 
     function revoke(
@@ -409,6 +422,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount, extraData
             );
         }
+        _callGlobalHook();
     }
 
     function revokeBatch(
@@ -447,6 +461,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 );
             }
         }
+        _callGlobalHook();
     }
 
     function revokeOffchain(
@@ -465,6 +480,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             );
         }
         _revokeOffchain(offchainAttestationId, reason, delegateMode);
+        _callGlobalHook();
     }
 
     function revokeOffchainBatch(
@@ -491,6 +507,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             }
             _revokeOffchain(offchainAttestationIds[i], reasons[i], delegateMode);
         }
+        _callGlobalHook();
     }
 
     function getSchema(uint256 schemaId) external view override returns (Schema memory) {
@@ -569,6 +586,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         returns (bytes32)
     {
         return keccak256(abi.encode(REVOKE_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds));
+    }
+
+    function _callGlobalHook() internal {
+        SPStorage storage $ = _getSPStorage();
+        if (address($.globalHook) != address(0)) $.globalHook.callHook(_msgData());
     }
 
     function _register(Schema calldata schema) internal returns (uint256 schemaId) {

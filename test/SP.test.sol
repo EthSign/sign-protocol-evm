@@ -11,6 +11,7 @@ import { MockResolver } from "../src/mock/MockResolver.sol";
 import { Schema } from "../src/models/Schema.sol";
 import { DataLocation } from "../src/models/DataLocation.sol";
 import { Attestation, OffchainAttestation } from "../src/models/Attestation.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract SPTest is Test {
     ISP public sp;
@@ -224,7 +225,7 @@ contract SPTest is Test {
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         attestations[0].attester = signer;
         bytes32 hash = sp.getDelegatedAttestHash(attestations[0]);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         // Delegate attest batch
         sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s), "");
         Attestation memory attestation0Actual = sp.getAttestation(attestationId0);
@@ -255,7 +256,7 @@ contract SPTest is Test {
         attestations[0].attester = signer;
         attestations[1].attester = signer;
         bytes32 hash = sp.getDelegatedAttestBatchHash(attestations);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         // Delegate attest batch
         sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
         Attestation memory attestation0Actual = sp.getAttestation(attestationId0);
@@ -271,14 +272,14 @@ contract SPTest is Test {
         // Altering the first reference attester, should revert with `InvalidDelegateSignature`
         attestations[0].attester = prankSender;
         hash = sp.getDelegatedAttestBatchHash(attestations);
-        (v, r, s) = vm.sign(signerPk, hash);
+        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
         sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
         attestations[0].attester = signer;
         // Altering the second attester, should fail attester consistency check
         attestations[1].attester = prankSender;
         hash = sp.getDelegatedAttestBatchHash(attestations);
-        (v, r, s) = vm.sign(signerPk, hash);
+        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector, signer, prankSender));
         sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
     }
@@ -287,7 +288,7 @@ contract SPTest is Test {
         string[] memory offchainAttestationIds = _createMockAttestationIds();
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         bytes32 hash = sp.getDelegatedOffchainAttestHash(offchainAttestationIds[0]);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         sp.attestOffchain(offchainAttestationIds[0], signer, _vrsToSignature(v, r, s));
         OffchainAttestation memory offchainAttestation = sp.getOffchainAttestation(offchainAttestationIds[0]);
         assertEq(offchainAttestation.attester, signer);
@@ -302,7 +303,7 @@ contract SPTest is Test {
         string[] memory offchainAttestationIds = _createMockAttestationIds();
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         bytes32 hash = sp.getDelegatedOffchainAttestBatchHash(offchainAttestationIds);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         // Try to fail on purpose first
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
         sp.attestOffchainBatch(offchainAttestationIds, prankSender, _vrsToSignature(v, r, s));
@@ -323,7 +324,7 @@ contract SPTest is Test {
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         attestations[0].attester = signer;
         bytes32 hash = sp.getDelegatedAttestHash(attestations[0]);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s), "");
         // Delegated revoke
         // Try to fail on purpose first
@@ -331,7 +332,7 @@ contract SPTest is Test {
         sp.revoke(attestationId0, "", _vrsToSignature(v, r, s), ""); // Still using the attest signature
         // Revoke correctly
         hash = sp.getDelegatedRevokeHash(attestationId0);
-        (v, r, s) = vm.sign(signerPk, hash);
+        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         sp.revoke(attestationId0, "", _vrsToSignature(v, r, s), "");
     }
 
@@ -350,17 +351,17 @@ contract SPTest is Test {
         attestations[0].attester = signer;
         attestations[1].attester = signer;
         bytes32 hash = sp.getDelegatedAttestBatchHash(attestations);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
         // Revoke batch
         // Sign using the wrong signer first
         (, uint256 signerPk1) = makeAddrAndKey("signer1");
         hash = sp.getDelegatedRevokeBatchHash(attestationIds);
-        (v, r, s) = vm.sign(signerPk1, hash);
+        (v, r, s) = vm.sign(signerPk1, MessageHashUtils.toEthSignedMessageHash(hash));
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
         sp.revokeBatch(attestationIds, _createMockReasons(), _vrsToSignature(v, r, s), "");
         // Revoke correctly with the correct signer
-        (v, r, s) = vm.sign(signerPk, hash);
+        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         sp.revokeBatch(attestationIds, _createMockReasons(), _vrsToSignature(v, r, s), "");
     }
 
@@ -368,7 +369,7 @@ contract SPTest is Test {
         string[] memory offchainAttestationIds = _createMockAttestationIds();
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         bytes32 hash = sp.getDelegatedOffchainAttestHash(offchainAttestationIds[0]);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         vm.warp(100);
         sp.attestOffchain(offchainAttestationIds[0], signer, _vrsToSignature(v, r, s));
         // Try to fail on purpose first
@@ -376,7 +377,7 @@ contract SPTest is Test {
         sp.revokeOffchain(offchainAttestationIds[0], "", _vrsToSignature(v, r, s));
         // Revoke correctly
         hash = sp.getDelegatedOffchainRevokeHash(offchainAttestationIds[0]);
-        (v, r, s) = vm.sign(signerPk, hash);
+        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         sp.revokeOffchain(offchainAttestationIds[0], "", _vrsToSignature(v, r, s));
     }
 
@@ -384,7 +385,7 @@ contract SPTest is Test {
         string[] memory offchainAttestationIds = _createMockAttestationIds();
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         bytes32 hash = sp.getDelegatedOffchainAttestBatchHash(offchainAttestationIds);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         vm.warp(100);
         sp.attestOffchainBatch(offchainAttestationIds, signer, _vrsToSignature(v, r, s));
         vm.prank(prankSender);
@@ -397,13 +398,13 @@ contract SPTest is Test {
         string memory offchainAttestationId1 = offchainAttestationIds[1];
         offchainAttestationIds[1] = offchainAttestationIdPranked;
         hash = sp.getDelegatedOffchainRevokeBatchHash(offchainAttestationIds);
-        (v, r, s) = vm.sign(signerPk, hash);
+        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector, prankSender, signer));
         sp.revokeOffchainBatch(offchainAttestationIds, _createMockReasons(), _vrsToSignature(v, r, s));
         // Revoke correctly
         offchainAttestationIds[1] = offchainAttestationId1;
         hash = sp.getDelegatedOffchainRevokeBatchHash(offchainAttestationIds);
-        (v, r, s) = vm.sign(signerPk, hash);
+        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
         sp.revokeOffchainBatch(offchainAttestationIds, _createMockReasons(), _vrsToSignature(v, r, s));
     }
 
