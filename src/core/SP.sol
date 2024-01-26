@@ -535,7 +535,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function version() external pure override returns (string memory) {
-        return "1.0.0-beta18";
+        return "1.0.0-beta17";
     }
 
     function getDelegatedAttestHash(Attestation memory attestation) public pure override returns (bytes32) {
