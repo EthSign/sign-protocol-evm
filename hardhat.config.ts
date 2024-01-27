@@ -38,7 +38,7 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
-    zetachain_testnet: {
+    zetachainTestnet: {
       chainId: 7001,
       url: "https://zetachain-athens-evm.blockpi.network/v1/rpc/public",
       accounts: [process.env.PRIVATE_KEY!],
@@ -52,6 +52,13 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    opBnbTestnet: {
+      chainId: 5611,
+      url: "https://opbnb-testnet-rpc.bnbchain.org",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
   },
   etherscan: {
     apiKey: {
@@ -61,7 +68,7 @@ const config: HardhatUserConfig = {
       avax: process.env.SNOWTRACE_KEY!,
       sepolia: process.env.ETHERSCAN_KEY!,
       mainnet: process.env.ETHERSCAN_KEY!,
-      zetachain_testnet: process.env.ZETASCAN_API_KEY!,
+      zetachainTestnet: process.env.ZETASCAN_API_KEY!,
       zetachain: process.env.ZETASCAN_API_KEY!,
     },
     customChains: [
@@ -90,7 +97,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        network: "zetachain_testnet",
+        network: "zetachainTestnet",
         chainId: 7001,
         urls: {
           apiURL: "https://zetachain-athens-3.blockscout.com/api",
