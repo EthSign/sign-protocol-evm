@@ -22,6 +22,10 @@ interface ISP is IVersionable {
      */
     error SchemaNonexistent(uint256 nonexistentSchemaId);
     /**
+     * @dev 0x71984561
+     */
+    error SchemaWrongRegistrant(address expected, address actual);
+    /**
      * @dev 0x8ac42f49
      */
     error AttestationIrrevocable(uint256 schemaId, uint256 offendingAttestationId);
@@ -64,7 +68,7 @@ interface ISP is IVersionable {
      * @param schema See `Schema`.
      * @return schemaId The assigned ID of the registered schema.
      */
-    function register(Schema calldata schema) external returns (uint256 schemaId);
+    function register(Schema memory schema, bytes calldata delegateSignature) external returns (uint256 schemaId);
 
     /**
      * @notice Makes an attestation.
@@ -218,7 +222,12 @@ interface ISP is IVersionable {
     /**
      * @notice Batch registers a Schema.
      */
-    function registerBatch(Schema[] calldata schemas) external returns (uint256[] calldata schemaIds);
+    function registerBatch(
+        Schema[] calldata schemas,
+        bytes calldata delegateSignature
+    )
+        external
+        returns (uint256[] calldata schemaIds);
 
     /**
      * @notice Batch attests.
@@ -336,12 +345,22 @@ interface ISP is IVersionable {
         returns (OffchainAttestation calldata);
 
     /**
+     * @notice Returns the hash that will be used to authorize a delegated registration.
+     */
+    function getDelegatedRegisterHash(Schema memory schema) external pure returns (bytes32);
+
+    /**
+     * @notice Returns the hash that will be used to authorize a delegated batch registration.
+     */
+    function getDelegatedRegisterBatchHash(Schema[] memory schemas) external pure returns (bytes32);
+
+    /**
      * @notice Returns the hash that will be used to authorize a delegated attestation.
      */
     function getDelegatedAttestHash(Attestation calldata attestation) external pure returns (bytes32);
 
     /**
-     * @notice Returns the hash that will be used to authorize a delegated batched attestation.
+     * @notice Returns the hash that will be used to authorize a delegated batch attestation.
      */
     function getDelegatedAttestBatchHash(Attestation[] calldata attestations) external pure returns (bytes32);
 
@@ -351,7 +370,7 @@ interface ISP is IVersionable {
     function getDelegatedOffchainAttestHash(string calldata offchainAttestationId) external pure returns (bytes32);
 
     /**
-     * @notice Returns the hash that will be used to authorize a delegated batched offchain attestation.
+     * @notice Returns the hash that will be used to authorize a delegated batch offchain attestation.
      */
     function getDelegatedOffchainAttestBatchHash(string[] calldata offchainAttestationIds)
         external
@@ -364,7 +383,7 @@ interface ISP is IVersionable {
     function getDelegatedRevokeHash(uint256 attestationId) external pure returns (bytes32);
 
     /**
-     * @notice Returns the hash that will be used to authorize a delegated batched revocation.
+     * @notice Returns the hash that will be used to authorize a delegated batch revocation.
      */
     function getDelegatedRevokeBatchHash(uint256[] calldata attestationIds) external pure returns (bytes32);
 
@@ -374,7 +393,7 @@ interface ISP is IVersionable {
     function getDelegatedOffchainRevokeHash(string calldata offchainAttestationId) external pure returns (bytes32);
 
     /**
-     * @notice Returns the hash that will be used to authorize a delegated batched offchain revocation.
+     * @notice Returns the hash that will be used to authorize a delegated batch offchain revocation.
      */
     function getDelegatedOffchainRevokeBatchHash(string[] calldata offchainAttestationIds)
         external

@@ -27,6 +27,8 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     // keccak256(abi.encode(uint256(keccak256("ethsign.SP")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant SPStorageLocation = 0x9f5ee6fb062129ebe4f4f93ab4866ee289599fbb940712219d796d503e3bd400;
 
+    bytes32 private constant REGISTER_ACTION_NAME = "REGISTER";
+    bytes32 private constant REGISTER_BATCH_ACTION_NAME = "REGISTER_BATCH";
     bytes32 private constant ATTEST_ACTION_NAME = "ATTEST";
     bytes32 private constant ATTEST_BATCH_ACTION_NAME = "ATTEST_BATCH";
     bytes32 private constant ATTEST_OFFCHAIN_ACTION_NAME = "ATTEST_OFFCHAIN";
@@ -56,14 +58,47 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         $.attestationCounter = 1;
     }
 
-    function register(Schema calldata schema) external override returns (uint256 schemaId) {
+    function register(
+        Schema memory schema,
+        bytes calldata delegateSignature
+    )
+        external
+        override
+        returns (uint256 schemaId)
+    {
+        bool delegateMode = delegateSignature.length != 0;
+        if (delegateMode) {
+            __checkDelegationSignature(schema.registrant, getDelegatedRegisterHash(schema), delegateSignature);
+        } else {
+            if (schema.registrant != _msgSender()) revert SchemaWrongRegistrant(schema.registrant, _msgSender());
+        }
         schemaId = _register(schema);
         _callGlobalHook();
     }
 
-    function registerBatch(Schema[] calldata schemas) external override returns (uint256[] memory schemaIds) {
+    function registerBatch(
+        Schema[] calldata schemas,
+        bytes calldata delegateSignature
+    )
+        external
+        override
+        returns (uint256[] memory schemaIds)
+    {
+        bool delegateMode = delegateSignature.length != 0;
+        address registrant = schemas[0].registrant;
+        if (delegateMode) {
+            // solhint-disable-next-line max-line-length
+            __checkDelegationSignature(schemas[0].registrant, getDelegatedRegisterBatchHash(schemas), delegateSignature);
+        } else {
+            if (schemas[0].registrant != _msgSender()) {
+                revert SchemaWrongRegistrant(schemas[0].registrant, _msgSender());
+            }
+        }
         schemaIds = new uint256[](schemas.length);
         for (uint256 i = 0; i < schemas.length; i++) {
+            if (delegateMode && schemas[i].registrant != registrant) {
+                revert SchemaWrongRegistrant(registrant, schemas[i].registrant);
+            }
             schemaIds[i] = _register(schemas[i]);
         }
         _callGlobalHook();
@@ -535,7 +570,15 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function version() external pure override returns (string memory) {
-        return "1.0.0-beta17";
+        return "1.0.0-beta18";
+    }
+
+    function getDelegatedRegisterHash(Schema memory schema) public pure override returns (bytes32) {
+        return keccak256(abi.encode(REGISTER_ACTION_NAME, schema));
+    }
+
+    function getDelegatedRegisterBatchHash(Schema[] memory schemas) public pure override returns (bytes32) {
+        return keccak256(abi.encode(REGISTER_ACTION_NAME, schemas));
     }
 
     function getDelegatedAttestHash(Attestation memory attestation) public pure override returns (bytes32) {
@@ -593,7 +636,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         if (address($.globalHook) != address(0)) $.globalHook.callHook(_msgData());
     }
 
-    function _register(Schema calldata schema) internal returns (uint256 schemaId) {
+    function _register(Schema memory schema) internal returns (uint256 schemaId) {
         SPStorage storage $ = _getSPStorage();
         schemaId = $.schemaCounter++;
         $._schemaRegistry[schemaId] = schema;

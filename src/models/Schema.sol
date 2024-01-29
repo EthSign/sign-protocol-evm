@@ -9,6 +9,7 @@ import { DataLocation } from "./DataLocation.sol";
  * @author Jack Xu @ EthSign
  * @notice This struct represents an on-chain Schema that Attestations can conform to.
  *
+ * `registrant`: The address that registered this schema.
  * `revocable`: Whether Attestations that adopt this Schema can be revoked.
  * `dataLocation`: Where `Schema.data` is stored. See `DataLocation.DataLocation`.
  * `maxValidFor`: The maximum number of seconds that an Attestation can remain valid. 0 means Attestations can be valid
@@ -19,6 +20,7 @@ import { DataLocation } from "./DataLocation.sol";
  * for easy readability.
  */
 struct Schema {
+    address registrant;
     bool revocable;
     DataLocation dataLocation;
     uint64 maxValidFor;

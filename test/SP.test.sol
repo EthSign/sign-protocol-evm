@@ -27,6 +27,7 @@ contract SPTest is Test {
     event OffchainAttestationRevoked(string attestationId, string reason);
 
     error SchemaNonexistent(uint256 nonexistentSchemaId);
+    error SchemaWrongRegistrant(address expected, address actual);
     error AttestationIrrevocable(uint256 schemaId, uint256 offendingAttestationId);
     error AttestationNonexistent(uint256 nonexistentAttestationId);
     error AttestationInvalidDuration(uint256 offendingAttestationId, uint64 maxDuration, uint64 inputDuration);
@@ -52,7 +53,7 @@ contract SPTest is Test {
         vm.expectEmit();
         emit SchemaRegistered(currentSchemaCounter++);
         emit SchemaRegistered(currentSchemaCounter++);
-        uint256[] memory schemaIds = sp.registerBatch(schemas);
+        uint256[] memory schemaIds = sp.registerBatch(schemas, "");
         Schema memory schema0Expected = schemas[0];
         Schema memory schema1Expected = schemas[1];
         Schema memory schema0Actual = sp.getSchema(schemaIds[0]);
@@ -70,7 +71,7 @@ contract SPTest is Test {
     function test_attest() public {
         // Register 2 different schemas
         Schema[] memory schemas = _createMockSchemas();
-        uint256[] memory schemaIds = sp.registerBatch(schemas);
+        uint256[] memory schemaIds = sp.registerBatch(schemas, "");
         // Create two normal attestations
         (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
         // Modify the second one to trigger `AttestationInvalidDuration`
@@ -129,7 +130,7 @@ contract SPTest is Test {
     function test_revokeFail() public {
         // Register 2 different schemas
         Schema[] memory schemas = _createMockSchemas();
-        uint256[] memory schemaIds = sp.registerBatch(schemas);
+        uint256[] memory schemaIds = sp.registerBatch(schemas, "");
         // Make two normal attestations
         (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
         vm.prank(prankSender);
@@ -156,7 +157,7 @@ contract SPTest is Test {
         // Register 2 different schemas
         Schema[] memory schemas = _createMockSchemas();
         schemas[1].revocable = true;
-        uint256[] memory schemaIds = sp.registerBatch(schemas);
+        uint256[] memory schemaIds = sp.registerBatch(schemas, "");
         // Make two normal attestations
         (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
         vm.prank(prankSender);
@@ -214,10 +215,33 @@ contract SPTest is Test {
 
     // DELEGATED TEST CASES
 
+    function test_register_delegated() public {
+        (address signer, uint256 signerPk) = makeAddrAndKey("registrant");
+        Schema[] memory schemas = _createMockSchemas();
+        schemas[0].registrant = signer;
+        bytes32 hash = sp.getDelegatedRegisterHash(schemas[0]);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        vm.expectRevert(abi.encodeWithSelector(SchemaWrongRegistrant.selector, signer, address(this)));
+        sp.register(schemas[0], "");
+        sp.register(schemas[0], _vrsToSignature(v, r, s));
+    }
+
+    function test_register_batch_delegated() public {
+        (address signer, uint256 signerPk) = makeAddrAndKey("registrant");
+        Schema[] memory schemas = _createMockSchemas();
+        schemas[0].registrant = signer;
+        schemas[1].registrant = signer;
+        bytes32 hash = sp.getDelegatedRegisterBatchHash(schemas);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        vm.expectRevert(abi.encodeWithSelector(SchemaWrongRegistrant.selector, signer, address(this)));
+        sp.registerBatch(schemas, "");
+        sp.registerBatch(schemas, _vrsToSignature(v, r, s));
+    }
+
     function test_attest_delegated() public {
         // Register 2 different schemas
         Schema[] memory schemas = _createMockSchemas();
-        uint256[] memory schemaIds = sp.registerBatch(schemas);
+        uint256[] memory schemaIds = sp.registerBatch(schemas, "");
         uint256 attestationId0 = sp.attestationCounter();
         // Create two normal attestations
         (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
@@ -247,7 +271,7 @@ contract SPTest is Test {
     function test_attest_batch_delegated() public {
         // Register 2 different schemas
         Schema[] memory schemas = _createMockSchemas();
-        uint256[] memory schemaIds = sp.registerBatch(schemas);
+        uint256[] memory schemaIds = sp.registerBatch(schemas, "");
         uint256 attestationId0 = sp.attestationCounter();
         // Create two normal attestations
         (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
@@ -316,7 +340,7 @@ contract SPTest is Test {
     function test_revoke_delegated() public {
         // Register 2 different schemas
         Schema[] memory schemas = _createMockSchemas();
-        uint256[] memory schemaIds = sp.registerBatch(schemas);
+        uint256[] memory schemaIds = sp.registerBatch(schemas, "");
         uint256 attestationId0 = sp.attestationCounter();
         // Create two normal attestations
         (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
@@ -340,7 +364,7 @@ contract SPTest is Test {
         // Register 2 different schemas
         Schema[] memory schemas = _createMockSchemas();
         schemas[1].revocable = true;
-        uint256[] memory schemaIds = sp.registerBatch(schemas);
+        uint256[] memory schemaIds = sp.registerBatch(schemas, "");
         uint256[] memory attestationIds = new uint256[](2);
         attestationIds[0] = sp.attestationCounter();
         attestationIds[1] = attestationIds[0] + 1;
@@ -410,6 +434,7 @@ contract SPTest is Test {
 
     function _createMockSchemas() internal view returns (Schema[] memory) {
         Schema memory schema0 = Schema({
+            registrant: address(this),
             revocable: true,
             dataLocation: DataLocation.ONCHAIN,
             maxValidFor: 0,
@@ -417,6 +442,7 @@ contract SPTest is Test {
             data: "stupid0"
         });
         Schema memory schema1 = Schema({
+            registrant: address(this),
             revocable: false,
             dataLocation: DataLocation.ONCHAIN,
             maxValidFor: 100,
