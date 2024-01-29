@@ -334,7 +334,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         if (delegateMode) {
             __checkDelegationSignature(
                 _getSPStorage()._attestationRegistry[attestationId].attester,
-                getDelegatedRevokeHash(attestationId),
+                getDelegatedRevokeHash(attestationId, reason),
                 delegateSignature
             );
         }
@@ -359,7 +359,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             address storageAttester = _getSPStorage()._attestationRegistry[attestationIds[0]].attester;
-            __checkDelegationSignature(storageAttester, getDelegatedRevokeBatchHash(attestationIds), delegateSignature);
+            __checkDelegationSignature(
+                storageAttester, getDelegatedRevokeBatchHash(attestationIds, reasons), delegateSignature
+            );
             currentAttester = storageAttester;
         }
         for (uint256 i = 0; i < attestationIds.length; i++) {
@@ -390,7 +392,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
-            __checkDelegationSignature(storageAttester, getDelegatedRevokeHash(attestationId), delegateSignature);
+            __checkDelegationSignature(
+                storageAttester, getDelegatedRevokeHash(attestationId, reason), delegateSignature
+            );
         }
         uint256 schemaId = _revoke(attestationId, reason, delegateMode);
         ISPHook hook = __getResolverFromAttestationId(attestationId);
@@ -415,7 +419,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             address storageAttester = _getSPStorage()._attestationRegistry[attestationIds[0]].attester;
-            __checkDelegationSignature(storageAttester, getDelegatedRevokeBatchHash(attestationIds), delegateSignature);
+            __checkDelegationSignature(
+                storageAttester, getDelegatedRevokeBatchHash(attestationIds, reasons), delegateSignature
+            );
             currentAttester = storageAttester;
         }
         for (uint256 i = 0; i < attestationIds.length; i++) {
@@ -448,7 +454,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
-            __checkDelegationSignature(storageAttester, getDelegatedRevokeHash(attestationId), delegateSignature);
+            __checkDelegationSignature(
+                storageAttester, getDelegatedRevokeHash(attestationId, reason), delegateSignature
+            );
         }
         uint256 schemaId = _revoke(attestationId, reason, delegateMode);
         ISPHook hook = __getResolverFromAttestationId(attestationId);
@@ -475,7 +483,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             address storageAttester = _getSPStorage()._attestationRegistry[attestationIds[0]].attester;
-            __checkDelegationSignature(storageAttester, getDelegatedRevokeBatchHash(attestationIds), delegateSignature);
+            __checkDelegationSignature(
+                storageAttester, getDelegatedRevokeBatchHash(attestationIds, reasons), delegateSignature
+            );
             currentAttester = storageAttester;
         }
         for (uint256 i = 0; i < attestationIds.length; i++) {
@@ -511,7 +521,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         if (delegateMode) {
             address storageAttester = _getSPStorage()._offchainAttestationRegistry[offchainAttestationId].attester;
             __checkDelegationSignature(
-                storageAttester, getDelegatedOffchainRevokeHash(offchainAttestationId), delegateSignature
+                storageAttester, getDelegatedOffchainRevokeHash(offchainAttestationId, reason), delegateSignature
             );
         }
         _revokeOffchain(offchainAttestationId, reason, delegateMode);
@@ -531,7 +541,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         if (delegateMode) {
             address storageAttester = _getSPStorage()._offchainAttestationRegistry[offchainAttestationIds[0]].attester;
             __checkDelegationSignature(
-                storageAttester, getDelegatedOffchainRevokeBatchHash(offchainAttestationIds), delegateSignature
+                storageAttester, getDelegatedOffchainRevokeBatchHash(offchainAttestationIds, reasons), delegateSignature
             );
             currentAttester = storageAttester;
         }
@@ -606,29 +616,50 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return keccak256(abi.encode(ATTEST_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds));
     }
 
-    function getDelegatedRevokeHash(uint256 attestationId) public pure override returns (bytes32) {
-        return keccak256(abi.encode(REVOKE_ACTION_NAME, attestationId));
-    }
-
-    function getDelegatedRevokeBatchHash(uint256[] memory attestationIds) public pure returns (bytes32) {
-        return keccak256(abi.encode(REVOKE_BATCH_ACTION_NAME, attestationIds));
-    }
-
-    function getDelegatedOffchainRevokeHash(string memory offchainAttestationId)
+    function getDelegatedRevokeHash(
+        uint256 attestationId,
+        string memory reason
+    )
         public
         pure
         override
         returns (bytes32)
     {
-        return keccak256(abi.encode(REVOKE_OFFCHAIN_ACTION_NAME, offchainAttestationId));
+        return keccak256(abi.encode(REVOKE_ACTION_NAME, attestationId, reason));
     }
 
-    function getDelegatedOffchainRevokeBatchHash(string[] memory offchainAttestationIds)
+    function getDelegatedRevokeBatchHash(
+        uint256[] memory attestationIds,
+        string[] memory reasons
+    )
         public
         pure
         returns (bytes32)
     {
-        return keccak256(abi.encode(REVOKE_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds));
+        return keccak256(abi.encode(REVOKE_BATCH_ACTION_NAME, attestationIds, reasons));
+    }
+
+    function getDelegatedOffchainRevokeHash(
+        string memory offchainAttestationId,
+        string memory reason
+    )
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(REVOKE_OFFCHAIN_ACTION_NAME, offchainAttestationId, reason));
+    }
+
+    function getDelegatedOffchainRevokeBatchHash(
+        string[] memory offchainAttestationIds,
+        string[] memory reasons
+    )
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(REVOKE_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds, reasons));
     }
 
     function _callGlobalHook() internal {

@@ -380,22 +380,37 @@ interface ISP is IVersionable {
     /**
      * @notice Returns the hash that will be used to authorize a delegated revocation.
      */
-    function getDelegatedRevokeHash(uint256 attestationId) external pure returns (bytes32);
+    function getDelegatedRevokeHash(uint256 attestationId, string memory reason) external pure returns (bytes32);
 
     /**
      * @notice Returns the hash that will be used to authorize a delegated batch revocation.
      */
-    function getDelegatedRevokeBatchHash(uint256[] calldata attestationIds) external pure returns (bytes32);
+    function getDelegatedRevokeBatchHash(
+        uint256[] memory attestationIds,
+        string[] memory reasons
+    )
+        external
+        pure
+        returns (bytes32);
 
     /**
      * @notice Returns the hash that will be used to authorize a delegated offchain revocation.
      */
-    function getDelegatedOffchainRevokeHash(string calldata offchainAttestationId) external pure returns (bytes32);
+    function getDelegatedOffchainRevokeHash(
+        string memory offchainAttestationId,
+        string memory reason
+    )
+        external
+        pure
+        returns (bytes32);
 
     /**
      * @notice Returns the hash that will be used to authorize a delegated batch offchain revocation.
      */
-    function getDelegatedOffchainRevokeBatchHash(string[] calldata offchainAttestationIds)
+    function getDelegatedOffchainRevokeBatchHash(
+        string[] memory offchainAttestationIds,
+        string[] memory reasons
+    )
         external
         pure
         returns (bytes32);
