@@ -38,6 +38,13 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    polygon: {
+      url: "https://polygon-rpc.com",
+      chainId: 137,
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
     zetachainTestnet: {
       chainId: 7001,
       url: "https://zetachain-athens-evm.blockpi.network/v1/rpc/public",
@@ -59,9 +66,17 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    opBnb: {
+      chainId: 204,
+      url: "https://opbnb-mainnet-rpc.bnbchain.org",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
   },
   etherscan: {
     apiKey: {
+      polygon: process.env.POLYGONSCAN_KEY!,
       polygonMumbai: process.env.POLYGONSCAN_KEY!,
       mantaPacific: process.env.MANTAPACIFIC_KEY!,
       mantaPacificTestnet: process.env.MANTAPACIFIC_TEST_KEY!,

@@ -66,6 +66,8 @@ interface ISP is IVersionable {
      * @notice Registers a Schema.
      * @dev Emits `SchemaRegistered`.
      * @param schema See `Schema`.
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` or `0x`
+     * otherwise.
      * @return schemaId The assigned ID of the registered schema.
      */
     function register(Schema memory schema, bytes calldata delegateSignature) external returns (uint256 schemaId);
@@ -75,7 +77,7 @@ interface ISP is IVersionable {
      * @dev Emits `AttestationMade`.
      * @param attestation See `Attestation`.
      * @param indexingKey Used by the frontend to aid indexing.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` or `0x`
      * otherwise.
      * @param extraData This is forwarded to the resolver directly.
      * @return attestationId The assigned ID of the attestation.
@@ -95,7 +97,7 @@ interface ISP is IVersionable {
      * @param attestation See `Attestation`.
      * @param resolverFeesETH Amount of funds to send to the hook.
      * @param indexingKey Used by the frontend to aid indexing.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` or `0x`
      * otherwise.
      * @param extraData This is forwarded to the resolver directly.
      * @return attestationId The assigned ID of the attestation.
@@ -118,7 +120,7 @@ interface ISP is IVersionable {
      * @param resolverFeesERC20Token ERC20 token address used for payment.
      * @param resolverFeesERC20Amount Amount of funds to send to the hook.
      * @param indexingKey Used by the frontend to aid indexing.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` or `0x`
      * otherwise.
      * @param extraData This is forwarded to the resolver directly.
      * @return attestationId The assigned ID of the attestation.
@@ -140,8 +142,8 @@ interface ISP is IVersionable {
      * @param offchainAttestationId The off-chain data ID.
      * @param delegateAttester An optional delegated attester that authorized the caller to attest on their behalf if
      * this is a delegated attestation. Use `address(0)` otherwise.
-     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""`
-     * otherwise. Use `""` otherwise.
+     * @param delegateSignature An optional ECDSA delegateSignature if this is a delegated attestation. Use `""` or `0x`
+     * otherwise. Use `""` or `0x` otherwise.
      */
     function attestOffchain(
         string calldata offchainAttestationId,
