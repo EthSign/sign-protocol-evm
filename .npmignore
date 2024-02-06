@@ -22,3 +22,9 @@ cache_hardhat
 .gitmodules
 src/mock
 *.tgz
+.openzeppelin
+.prettierignore
+.prettierrc.yml
+*.json
+docs
+scripts

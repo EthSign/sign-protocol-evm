@@ -73,6 +73,13 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    ethereum: {
+      chainId: 1,
+      url: process.env.ALCHEMY_ETH_RPC!,
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
   },
   etherscan: {
     apiKey: {

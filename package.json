@@ -1,10 +1,10 @@
 {
-  "name": "sign-attestation-protocol-evm",
+  "name": "@ethsign/sign-protocol-evm",
   "version": "1.0.0",
   "description": "Sign Protocol is an omni-chain attestation protocol, enabling users to freely attest and verify any information on-chain.",
-  "directories": {
-    "lib": "lib",
-    "test": "test"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EthSign/sign-protocol-evm"
   },
   "scripts": {
     "clean": "forge clean && hardhat clean && rm -rf cache_hardhat",
