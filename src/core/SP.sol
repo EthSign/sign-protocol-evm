@@ -120,16 +120,18 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
         (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey, delegateMode);
         ISPHook hook = __getResolverFromAttestationId(attestationId);
-        if (address(hook) != address(0)) hook.didReceiveAttestation(_msgSender(), schemaId, attestationId, extraData);
+        if (address(hook) != address(0)) {
+            hook.didReceiveAttestation(attestation.attester, schemaId, attestationId, extraData);
+        }
         _callGlobalHook();
         return attestationId;
     }
 
     function attestBatch(
-        Attestation[] calldata attestations,
-        string[] calldata indexingKeys,
-        bytes calldata delegateSignature,
-        bytes calldata extraData
+        Attestation[] memory attestations,
+        string[] memory indexingKeys,
+        bytes memory delegateSignature,
+        bytes memory extraData
     )
         external
         override
@@ -149,7 +151,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             attestationIds[i] = attestationId;
             ISPHook hook = __getResolverFromAttestationId(attestationId);
             if (address(hook) != address(0)) {
-                hook.didReceiveAttestation(_msgSender(), schemaId, attestationId, extraData);
+                hook.didReceiveAttestation(attestations[i].attester, schemaId, attestationId, extraData);
             }
         }
         _callGlobalHook();
@@ -173,7 +175,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         (uint256 schemaId, uint256 attestationId) = _attest(attestation, indexingKey, delegateMode);
         ISPHook hook = __getResolverFromAttestationId(attestationId);
         if (address(hook) != address(0)) {
-            hook.didReceiveAttestation{ value: resolverFeesETH }(_msgSender(), schemaId, attestationId, extraData);
+            hook.didReceiveAttestation{ value: resolverFeesETH }(
+                attestation.attester, schemaId, attestationId, extraData
+            );
         }
         _callGlobalHook();
         return attestationId;
@@ -206,7 +210,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             ISPHook hook = __getResolverFromAttestationId(attestationId);
             if (address(hook) != address(0)) {
                 hook.didReceiveAttestation{ value: resolverFeesETH[i] }(
-                    _msgSender(), schemaId, attestationId, extraData
+                    attestations[i].attester, schemaId, attestationId, extraData
                 );
             }
         }
@@ -233,7 +237,12 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         ISPHook hook = __getResolverFromAttestationId(attestationId);
         if (address(hook) != address(0)) {
             hook.didReceiveAttestation(
-                _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount, extraData
+                attestation.attester,
+                schemaId,
+                attestationId,
+                resolverFeesERC20Token,
+                resolverFeesERC20Amount,
+                extraData
             );
         }
         _callGlobalHook();
@@ -269,7 +278,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             ISPHook hook = __getResolverFromAttestationId(attestationId);
             if (address(hook) != address(0)) {
                 hook.didReceiveAttestation(
-                    _msgSender(),
+                    attestations[i].attester,
                     schemaId,
                     attestationId,
                     resolverFeesERC20Tokens[i],
@@ -330,18 +339,17 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         external
         override
     {
+        address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             __checkDelegationSignature(
-                _getSPStorage()._attestationRegistry[attestationId].attester,
-                getDelegatedRevokeHash(attestationId, reason),
-                delegateSignature
+                storageAttester, getDelegatedRevokeHash(attestationId, reason), delegateSignature
             );
         }
         uint256 schemaId = _revoke(attestationId, reason, delegateMode);
         ISPHook hook = __getResolverFromAttestationId(attestationId);
         if (address(hook) != address(0)) {
-            hook.didReceiveRevocation(_msgSender(), schemaId, attestationId, extraData);
+            hook.didReceiveRevocation(storageAttester, schemaId, attestationId, extraData);
         }
         _callGlobalHook();
     }
@@ -372,7 +380,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             uint256 schemaId = _revoke(attestationIds[i], reasons[i], delegateMode);
             ISPHook hook = __getResolverFromAttestationId(attestationIds[i]);
             if (address(hook) != address(0)) {
-                hook.didReceiveRevocation(_msgSender(), schemaId, attestationIds[i], extraData);
+                hook.didReceiveRevocation(storageAttester, schemaId, attestationIds[i], extraData);
             }
         }
         _callGlobalHook();
@@ -380,18 +388,18 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     function revoke(
         uint256 attestationId,
-        string calldata reason,
+        string memory reason,
         uint256 resolverFeesETH,
-        bytes calldata delegateSignature,
-        bytes calldata extraData
+        bytes memory delegateSignature,
+        bytes memory extraData
     )
         external
         payable
         override
     {
+        address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
-            address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
             __checkDelegationSignature(
                 storageAttester, getDelegatedRevokeHash(attestationId, reason), delegateSignature
             );
@@ -399,7 +407,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         uint256 schemaId = _revoke(attestationId, reason, delegateMode);
         ISPHook hook = __getResolverFromAttestationId(attestationId);
         if (address(hook) != address(0)) {
-            hook.didReceiveRevocation{ value: resolverFeesETH }(_msgSender(), schemaId, attestationId, extraData);
+            hook.didReceiveRevocation{ value: resolverFeesETH }(storageAttester, schemaId, attestationId, extraData);
         }
         _callGlobalHook();
     }
@@ -433,7 +441,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             ISPHook hook = __getResolverFromAttestationId(attestationIds[i]);
             if (address(hook) != address(0)) {
                 hook.didReceiveRevocation{ value: resolverFeesETH[i] }(
-                    _msgSender(), schemaId, attestationIds[i], extraData
+                    storageAttester, schemaId, attestationIds[i], extraData
                 );
             }
         }
@@ -442,18 +450,18 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     function revoke(
         uint256 attestationId,
-        string calldata reason,
+        string memory reason,
         IERC20 resolverFeesERC20Token,
         uint256 resolverFeesERC20Amount,
-        bytes calldata delegateSignature,
-        bytes calldata extraData
+        bytes memory delegateSignature,
+        bytes memory extraData
     )
         external
         override
     {
+        address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
-            address storageAttester = _getSPStorage()._attestationRegistry[attestationId].attester;
             __checkDelegationSignature(
                 storageAttester, getDelegatedRevokeHash(attestationId, reason), delegateSignature
             );
@@ -462,7 +470,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         ISPHook hook = __getResolverFromAttestationId(attestationId);
         if (address(hook) != address(0)) {
             hook.didReceiveRevocation(
-                _msgSender(), schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount, extraData
+                storageAttester, schemaId, attestationId, resolverFeesERC20Token, resolverFeesERC20Amount, extraData
             );
         }
         _callGlobalHook();
@@ -497,7 +505,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             ISPHook hook = __getResolverFromAttestationId(attestationIds[i]);
             if (address(hook) != address(0)) {
                 hook.didReceiveRevocation(
-                    _msgSender(),
+                    storageAttester,
                     schemaId,
                     attestationIds[i],
                     resolverFeesERC20Tokens[i],
@@ -580,7 +588,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function version() external pure override returns (string memory) {
-        return "1.0.0-beta18";
+        return "1.0.1";
     }
 
     function getDelegatedRegisterHash(Schema memory schema) public pure override returns (bytes32) {
