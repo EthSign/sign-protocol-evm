@@ -16,6 +16,7 @@ import { DataLocation } from "./DataLocation.sol";
  * forever. This is enforced through `Attestation.validUntil`.
  * `hook`: The `ISPHook` that is called at the end of every function. 0 means there is no hook set. See
  * `ISPHook`.
+ * `timestamp`: When the schema was registered. This is automatically populated by `_register(...)`.
  * `data`: The raw schema that `Attestation.data` should follow. Since there is no way to enforce this, it is a `string`
  * for easy readability.
  */
