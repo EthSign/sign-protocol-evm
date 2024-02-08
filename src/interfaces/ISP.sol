@@ -11,16 +11,16 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @author Jack Xu @ EthSign
  */
 interface ISP is IVersionable {
-    event SchemaRegistered(uint256 schemaId);
-    event AttestationMade(uint256 attestationId, string indexingKey);
-    event AttestationRevoked(uint256 attestationId, string reason);
+    event SchemaRegistered(uint64 schemaId);
+    event AttestationMade(uint64 attestationId, string indexingKey);
+    event AttestationRevoked(uint64 attestationId, string reason);
     event OffchainAttestationMade(string attestationId);
     event OffchainAttestationRevoked(string attestationId, string reason);
 
     /**
      * @dev 0x38f8c6c4
      */
-    error SchemaNonexistent(uint256 nonexistentSchemaId);
+    error SchemaNonexistent(uint64 nonexistentSchemaId);
     /**
      * @dev 0x71984561
      */
@@ -28,19 +28,19 @@ interface ISP is IVersionable {
     /**
      * @dev 0x8ac42f49
      */
-    error AttestationIrrevocable(uint256 schemaId, uint256 offendingAttestationId);
+    error AttestationIrrevocable(uint64 schemaId, uint64 offendingAttestationId);
     /**
      * @dev 0x54681a13
      */
-    error AttestationNonexistent(uint256 nonexistentAttestationId);
+    error AttestationNonexistent(uint64 nonexistentAttestationId);
     /**
      * @dev 0xa65e02ed
      */
-    error AttestationInvalidDuration(uint256 offendingAttestationId, uint64 maxDuration, uint64 inputDuration);
+    error AttestationInvalidDuration(uint64 offendingAttestationId, uint64 maxDuration, uint64 inputDuration);
     /**
      * @dev 0xd8c3da86
      */
-    error AttestationAlreadyRevoked(uint256 offendingAttestationId);
+    error AttestationAlreadyRevoked(uint64 offendingAttestationId);
     /**
      * @dev 0xa9ad2007
      */
@@ -61,6 +61,10 @@ interface ISP is IVersionable {
      * @dev 0xfdf4e6f9
      */
     error InvalidDelegateSignature();
+    /**
+     * @dev 0x5c34b9cc
+     */
+    error LegacySPRequired(address legacySP);
 
     /**
      * @notice Registers a Schema.
@@ -70,7 +74,7 @@ interface ISP is IVersionable {
      * otherwise.
      * @return schemaId The assigned ID of the registered schema.
      */
-    function register(Schema memory schema, bytes calldata delegateSignature) external returns (uint256 schemaId);
+    function register(Schema memory schema, bytes calldata delegateSignature) external returns (uint64 schemaId);
 
     /**
      * @notice Makes an attestation.
@@ -89,7 +93,7 @@ interface ISP is IVersionable {
         bytes calldata extraData
     )
         external
-        returns (uint256 attestationId);
+        returns (uint64 attestationId);
 
     /**
      * @notice Makes an attestation where the schema hook expects ETH payment.
@@ -111,7 +115,7 @@ interface ISP is IVersionable {
     )
         external
         payable
-        returns (uint256 attestationId);
+        returns (uint64 attestationId);
 
     /**
      * @notice Makes an attestation where the schema hook expects ERC20 payment.
@@ -134,7 +138,7 @@ interface ISP is IVersionable {
         bytes calldata extraData
     )
         external
-        returns (uint256 attestationId);
+        returns (uint64 attestationId);
 
     /**
      * @notice Timestamps an off-chain data ID.
@@ -161,7 +165,7 @@ interface ISP is IVersionable {
      * @param extraData This is forwarded to the resolver directly.
      */
     function revoke(
-        uint256 attestationId,
+        uint64 attestationId,
         string calldata reason,
         bytes calldata delegateSignature,
         bytes calldata extraData
@@ -178,7 +182,7 @@ interface ISP is IVersionable {
      * @param extraData This is forwarded to the resolver directly.
      */
     function revoke(
-        uint256 attestationId,
+        uint64 attestationId,
         string calldata reason,
         uint256 resolverFeesETH,
         bytes calldata delegateSignature,
@@ -198,7 +202,7 @@ interface ISP is IVersionable {
      * @param extraData This is forwarded to the resolver directly.
      */
     function revoke(
-        uint256 attestationId,
+        uint64 attestationId,
         string calldata reason,
         IERC20 resolverFeesERC20Token,
         uint256 resolverFeesERC20Amount,
@@ -229,7 +233,7 @@ interface ISP is IVersionable {
         bytes calldata delegateSignature
     )
         external
-        returns (uint256[] calldata schemaIds);
+        returns (uint64[] calldata schemaIds);
 
     /**
      * @notice Batch attests.
@@ -241,7 +245,7 @@ interface ISP is IVersionable {
         bytes calldata extraData
     )
         external
-        returns (uint256[] calldata attestationIds);
+        returns (uint64[] calldata attestationIds);
 
     /**
      * @notice Batch attests where the schema hook expects ETH payment.
@@ -255,7 +259,7 @@ interface ISP is IVersionable {
     )
         external
         payable
-        returns (uint256[] calldata attestationIds);
+        returns (uint64[] calldata attestationIds);
 
     /**
      * @notice Batch attests where the schema hook expects ERC20 payment.
@@ -269,7 +273,7 @@ interface ISP is IVersionable {
         bytes calldata extraData
     )
         external
-        returns (uint256[] calldata attestationIds);
+        returns (uint64[] calldata attestationIds);
 
     /**
      * @notice Batch timestamps off-chain data IDs.
@@ -285,7 +289,7 @@ interface ISP is IVersionable {
      * @notice Batch revokes revocable on-chain attestations.
      */
     function revokeBatch(
-        uint256[] calldata attestationIds,
+        uint64[] calldata attestationIds,
         string[] calldata reasons,
         bytes calldata delegateSignature,
         bytes calldata extraData
@@ -296,7 +300,7 @@ interface ISP is IVersionable {
      * @notice Batch revokes revocable on-chain attestations where the schema hook expects ETH payment.
      */
     function revokeBatch(
-        uint256[] calldata attestationIds,
+        uint64[] calldata attestationIds,
         string[] calldata reasons,
         uint256[] calldata resolverFeesETH,
         bytes calldata delegateSignature,
@@ -309,7 +313,7 @@ interface ISP is IVersionable {
      * @notice Batch revokes revocable on-chain attestations where the schema hook expects ERC20 payment.
      */
     function revokeBatch(
-        uint256[] calldata attestationIds,
+        uint64[] calldata attestationIds,
         string[] calldata reasons,
         IERC20[] calldata resolverFeesERC20Tokens,
         uint256[] calldata resolverFeesERC20Amount,
@@ -331,12 +335,12 @@ interface ISP is IVersionable {
     /**
      * @notice Returns the specified `Schema`.
      */
-    function getSchema(uint256 schemaId) external view returns (Schema calldata);
+    function getSchema(uint64 schemaId) external view returns (Schema calldata);
 
     /**
      * @notice Returns the specified `Attestation`.
      */
-    function getAttestation(uint256 attestationId) external view returns (Attestation calldata);
+    function getAttestation(uint64 attestationId) external view returns (Attestation calldata);
 
     /**
      * @notice Returns the specified `OffchainAttestation`.
@@ -382,13 +386,13 @@ interface ISP is IVersionable {
     /**
      * @notice Returns the hash that will be used to authorize a delegated revocation.
      */
-    function getDelegatedRevokeHash(uint256 attestationId, string memory reason) external pure returns (bytes32);
+    function getDelegatedRevokeHash(uint64 attestationId, string memory reason) external pure returns (bytes32);
 
     /**
      * @notice Returns the hash that will be used to authorize a delegated batch revocation.
      */
     function getDelegatedRevokeBatchHash(
-        uint256[] memory attestationIds,
+        uint64[] memory attestationIds,
         string[] memory reasons
     )
         external
@@ -420,10 +424,10 @@ interface ISP is IVersionable {
     /**
      * @notice Returns the current schema counter. This is incremented for each `Schema` registered.
      */
-    function schemaCounter() external view returns (uint256);
+    function schemaCounter() external view returns (uint64);
 
     /**
      * @notice Returns the current on-chain attestation counter. This is incremented for each `Attestation` made.
      */
-    function attestationCounter() external view returns (uint256);
+    function attestationCounter() external view returns (uint64);
 }

@@ -22,11 +22,13 @@ import { DataLocation } from "./DataLocation.sol";
  * to use `abi.encode`.
  */
 struct Attestation {
-    uint256 schemaId;
-    DataLocation dataLocation;
-    uint256 linkedAttestationId;
+    uint64 schemaId;
+    uint64 linkedAttestationId;
+    uint64 attestTimestamp;
+    uint64 revokeTimestamp;
     address attester;
     uint64 validUntil;
+    DataLocation dataLocation;
     bool revoked;
     bytes[] recipients;
     bytes data;

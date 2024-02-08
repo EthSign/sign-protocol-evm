@@ -10,8 +10,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface ISPHook {
     function didReceiveAttestation(
         address attester,
-        uint256 schemaId,
-        uint256 attestationId,
+        uint64 schemaId,
+        uint64 attestationId,
         bytes calldata extraData
     )
         external
@@ -19,8 +19,8 @@ interface ISPHook {
 
     function didReceiveAttestation(
         address attester,
-        uint256 schemaId,
-        uint256 attestationId,
+        uint64 schemaId,
+        uint64 attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount,
         bytes calldata extraData
@@ -29,8 +29,8 @@ interface ISPHook {
 
     function didReceiveRevocation(
         address attester,
-        uint256 schemaId,
-        uint256 attestationId,
+        uint64 schemaId,
+        uint64 attestationId,
         bytes calldata extraData
     )
         external
@@ -38,8 +38,8 @@ interface ISPHook {
 
     function didReceiveRevocation(
         address attester,
-        uint256 schemaId,
-        uint256 attestationId,
+        uint64 schemaId,
+        uint64 attestationId,
         IERC20 resolverFeeERC20Token,
         uint256 resolverFeeERC20Amount,
         bytes calldata extraData

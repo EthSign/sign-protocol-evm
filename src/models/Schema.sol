@@ -25,5 +25,6 @@ struct Schema {
     DataLocation dataLocation;
     uint64 maxValidFor;
     ISPHook hook;
+    uint64 timestamp;
     string data;
 }
