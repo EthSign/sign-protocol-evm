@@ -18,45 +18,49 @@ interface ISP is IVersionable {
     event OffchainAttestationRevoked(string attestationId, string reason);
 
     /**
+     * @dev 0x9e87fac8
+     */
+    error Paused();
+    /**
      * @dev 0x38f8c6c4
      */
-    error SchemaNonexistent(uint64 nonexistentSchemaId);
+    error SchemaNonexistent();
     /**
      * @dev 0x71984561
      */
-    error SchemaWrongRegistrant(address expected, address actual);
+    error SchemaWrongRegistrant();
     /**
      * @dev 0x8ac42f49
      */
-    error AttestationIrrevocable(uint64 schemaId, uint64 offendingAttestationId);
+    error AttestationIrrevocable();
     /**
      * @dev 0x54681a13
      */
-    error AttestationNonexistent(uint64 nonexistentAttestationId);
+    error AttestationNonexistent();
     /**
      * @dev 0xa65e02ed
      */
-    error AttestationInvalidDuration(uint64 offendingAttestationId, uint64 maxDuration, uint64 inputDuration);
+    error AttestationInvalidDuration();
     /**
      * @dev 0xd8c3da86
      */
-    error AttestationAlreadyRevoked(uint64 offendingAttestationId);
+    error AttestationAlreadyRevoked();
     /**
      * @dev 0xa9ad2007
      */
-    error AttestationWrongAttester(address expected, address actual);
+    error AttestationWrongAttester();
     /**
      * @dev 0xc83e3cdf
      */
-    error OffchainAttestationExists(string existingOffchainAttestationId);
+    error OffchainAttestationExists();
     /**
      * @dev 0xa006519a
      */
-    error OffchainAttestationNonexistent(string nonexistentOffchainAttestationId);
+    error OffchainAttestationNonexistent();
     /**
      * @dev 0xa0671d20
      */
-    error OffchainAttestationAlreadyRevoked(string offendingOffchainAttestationId);
+    error OffchainAttestationAlreadyRevoked();
     /**
      * @dev 0xfdf4e6f9
      */
@@ -64,7 +68,7 @@ interface ISP is IVersionable {
     /**
      * @dev 0x5c34b9cc
      */
-    error LegacySPRequired(address legacySP);
+    error LegacySPRequired();
 
     /**
      * @notice Registers a Schema.
