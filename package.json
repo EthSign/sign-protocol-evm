@@ -1,6 +1,6 @@
 {
   "name": "@ethsign/sign-protocol-evm",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Sign Protocol is an omni-chain attestation protocol, enabling users to freely attest and verify any information on-chain.",
   "repository": {
     "type": "git",

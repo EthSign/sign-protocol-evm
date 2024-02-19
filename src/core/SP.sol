@@ -605,7 +605,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function version() external pure override returns (string memory) {
-        return "1.1.0";
+        return "1.1.1";
     }
 
     function getDelegatedRegisterHash(Schema memory schema) public pure override returns (bytes32) {
@@ -826,8 +826,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function __schemaExists(uint64 schemaId) internal view returns (bool) {
-        SPStorage storage $ = _getSPStorage();
-        return schemaId < $.schemaCounter;
+        return _getSPStorage().schemaRegistry[schemaId].timestamp > 0;
     }
 
     function __attestationExists(uint64 attestationId) internal view returns (bool) {

@@ -88,7 +88,7 @@ contract SPTest is Test {
         sp.attestBatch(attestations, indexingKeys, "", "");
         // Reset and trigger `SchemaNonexistent`
         (attestations,) = _createMockAttestations(schemaIds);
-        attestations[1].schemaId = 100_000;
+        attestations[1].schemaId = 0;
         vm.expectRevert(abi.encodeWithSelector(SchemaNonexistent.selector));
         vm.prank(prankSender);
         sp.attestBatch(attestations, indexingKeys, "", "");
