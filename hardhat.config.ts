@@ -80,6 +80,34 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    scrollSepolia: {
+      chainId: 534351,
+      url: "https://sepolia-rpc.scroll.io/",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
+    scroll: {
+      chainId: 534352,
+      url: "https://rpc.ankr.com/scroll",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
+    okxX1Testnet: {
+      chainId: 195,
+      url: "https://testrpc.x1.tech/",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
+    base: {
+      chainId: 8453,
+      url: "https://mainnet.base.org",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
   },
   etherscan: {
     apiKey: {
@@ -92,6 +120,11 @@ const config: HardhatUserConfig = {
       mainnet: process.env.ETHERSCAN_KEY!,
       zetachainTestnet: process.env.ZETASCAN_API_KEY!,
       zetachain: process.env.ZETASCAN_API_KEY!,
+      opbnb: process.env.OPBNB_API_KEY!,
+      scrollSepolia: process.env.SCROLL_API_KEY!,
+      scroll: process.env.SCROLL_API_KEY!,
+      x1: process.env.X1_API_KEY!,
+      base: process.env.BASE_API_KEY!,
     },
     customChains: [
       {
@@ -132,6 +165,38 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://zetachain.blockscout.com/api",
           browserURL: "https://zetachain.blockscout.com/",
+        },
+      },
+      {
+        network: "opbnb",
+        chainId: 204,
+        urls: {
+          apiURL: "https://open-platform.nodereal.io/3e6ff01181534922a576386e1880d414/op-bnb-mainnet/contract/",
+          browserURL: "https://opbnbscan.com/",
+        },
+      },
+      {
+        network: "scrollSepolia",
+        chainId: 534351,
+        urls: {
+          apiURL: "https://api-sepolia.scrollscan.com/api",
+          browserURL: "https://sepolia.scrollscan.com/",
+        },
+      },
+      {
+        network: "scroll",
+        chainId: 534352,
+        urls: {
+          apiURL: "https://api.scrollscan.com/api",
+          browserURL: "https://scrollscan.com/",
+        },
+      },
+      {
+        network: "x1",
+        chainId: 195,
+        urls: {
+          apiURL: "https://www.oklink.com/api/explorer/v1/contract/verify/async/api/x1_test",
+          browserURL: "https://www.oklink.com/x1-test",
         },
       },
     ],
