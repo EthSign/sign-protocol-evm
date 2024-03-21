@@ -108,6 +108,13 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    baseTestnet: {
+      chainId: 84532,
+      url: "https://sepolia.base.org",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
   },
   etherscan: {
     apiKey: {
@@ -125,6 +132,7 @@ const config: HardhatUserConfig = {
       scroll: process.env.SCROLL_API_KEY!,
       x1: process.env.X1_API_KEY!,
       base: process.env.BASE_API_KEY!,
+      baseTestnet: process.env.BASE_SEPOLIA_API_KEY!,
     },
     customChains: [
       {
@@ -199,11 +207,22 @@ const config: HardhatUserConfig = {
           browserURL: "https://www.oklink.com/x1-test",
         },
       },
+      {
+        network: "baseTestnet",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://base-sepolia.blockscout.com/api",
+          browserURL: "https://base-sepolia.blockscout.com",
+        },
+      },
     ],
   },
   docgen: {
     pages: "files",
     exclude: ["libraries", "mock"],
+  },
+  sourcify: {
+    enabled: false,
   },
 };
 
