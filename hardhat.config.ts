@@ -38,6 +38,13 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    sepolia: {
+      chainId: 11155111,
+      url: `https://eth-sepolia-public.unifra.io`,
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
     polygon: {
       url: "https://polygon-rpc.com",
       chainId: 137,
@@ -75,7 +82,7 @@ const config: HardhatUserConfig = {
     },
     ethereum: {
       chainId: 1,
-      url: process.env.ALCHEMY_ETH_RPC!,
+      url: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_ETH_API!}`,
       accounts: [process.env.PRIVATE_KEY!],
       saveDeployments: true,
       zksync: false,
@@ -115,6 +122,21 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    berachainTestnet: {
+      chainId: 80085,
+      url: "https://artio.rpc.berachain.com/",
+      gasPrice: 40000,
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
+    plumeTestnet: {
+      chainId: 161221135,
+      url: "https://testnet-rpc.plumenetwork.xyz/http",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
   },
   etherscan: {
     apiKey: {
@@ -133,6 +155,8 @@ const config: HardhatUserConfig = {
       x1: process.env.X1_API_KEY!,
       base: process.env.BASE_API_KEY!,
       baseTestnet: process.env.BASE_SEPOLIA_API_KEY!,
+      plumeTestnet: process.env.PLUME_TESTNET_API_KEY!,
+      berachainTestnet: process.env.BERACHAIN_TESTNET_API_KEY!,
     },
     customChains: [
       {
@@ -211,8 +235,24 @@ const config: HardhatUserConfig = {
         network: "baseTestnet",
         chainId: 84532,
         urls: {
-          apiURL: "https://base-sepolia.blockscout.com/api",
-          browserURL: "https://base-sepolia.blockscout.com",
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://sepolia.basescan.org",
+        },
+      },
+      {
+        network: "plumeTestnet",
+        chainId: 161221135,
+        urls: {
+          apiURL: "https://testnet-explorer.plumenetwork.xyz/api",
+          browserURL: "https://testnet-explorer.plumenetwork.xyz/",
+        },
+      },
+      {
+        network: "berachainTestnet",
+        chainId: 80085,
+        urls: {
+          apiURL: "https://api.routescan.io/v2/network/mainnet/evm/80085/etherscan",
+          browserURL: "https://artio.beratrail.io/",
         },
       },
     ],
