@@ -138,6 +138,20 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    opSepolia: {
+      chainId: 11155420,
+      url: "https://sepolia.optimism.io",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
+    optimism: {
+      chainId: 10,
+      url: "https://mainnet.optimism.io",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
   },
   etherscan: {
     apiKey: {
@@ -158,6 +172,8 @@ const config: HardhatUserConfig = {
       baseTestnet: process.env.BASE_SEPOLIA_API_KEY!,
       plumeTestnet: process.env.PLUME_TESTNET_API_KEY!,
       berachainTestnet: process.env.BERACHAIN_TESTNET_API_KEY!,
+      opSepolia: process.env.OP_ETHERSCAN_API_KEY!,
+      optimism: process.env.OP_ETHERSCAN_API_KEY!,
     },
     customChains: [
       {
@@ -262,6 +278,22 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/AMOY_TESTNET",
           browserURL: "https://www.oklink.com/amoy",
+        },
+      },
+      {
+        network: "opSepolia",
+        chainId: 11155420,
+        urls: {
+          apiURL: "https://api-sepolia-optimistic.etherscan.io/api",
+          browserURL: "https://sepolia-optimistic.etherscan.io",
+        },
+      },
+      {
+        network: "optimism",
+        chainId: 10,
+        urls: {
+          apiURL: "https://api-optimistic.etherscan.io/api",
+          browserURL: "https://explorer.optimism.io",
         },
       },
     ],

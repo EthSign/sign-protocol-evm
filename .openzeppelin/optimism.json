@@ -1,0 +1,406 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x945C44803E92a3495C32be951052a62E45A5D964",
+      "txHash": "0x390fc7a408f108f7f0bfa15ad39c9878c08e16ef1d7a49cfec1a11389935a4cd",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "8e57015e0d23cd9f03e542c03fb6317ac652ae232fd6c2bb8654aea0b0163ab6": {
+      "address": "0x996a99676d286fCeFCc1920369548c62ff7d6D11",
+      "txHash": "0x5e44965eb1406434bd8394497fb57fc7aa0d98c7afb1dca44daee8038a2c8a03",
+      "layout": {
+        "solcVersion": "0.8.23",
+        "storage": [],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes_storage)dyn_storage": {
+            "label": "bytes[]",
+            "numberOfBytes": "32"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes_storage": {
+            "label": "bytes",
+            "numberOfBytes": "32"
+          },
+          "t_contract(ISPGlobalHook)1156": {
+            "label": "contract ISPGlobalHook",
+            "numberOfBytes": "20"
+          },
+          "t_contract(ISPHook)1170": {
+            "label": "contract ISPHook",
+            "numberOfBytes": "20"
+          },
+          "t_enum(DataLocation)1290": {
+            "label": "enum DataLocation",
+            "members": [
+              "ONCHAIN",
+              "ARWEAVE",
+              "IPFS",
+              "CUSTOM"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_string_memory_ptr,t_struct(OffchainAttestation)1282_storage)": {
+            "label": "mapping(string => struct OffchainAttestation)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint64,t_struct(Attestation)1276_storage)": {
+            "label": "mapping(uint64 => struct Attestation)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint64,t_struct(Schema)1314_storage)": {
+            "label": "mapping(uint64 => struct Schema)",
+            "numberOfBytes": "32"
+          },
+          "t_string_memory_ptr": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Attestation)1276_storage": {
+            "label": "struct Attestation",
+            "members": [
+              {
+                "label": "schemaId",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "linkedAttestationId",
+                "type": "t_uint64",
+                "offset": 8,
+                "slot": "0"
+              },
+              {
+                "label": "attestTimestamp",
+                "type": "t_uint64",
+                "offset": 16,
+                "slot": "0"
+              },
+              {
+                "label": "revokeTimestamp",
+                "type": "t_uint64",
+                "offset": 24,
+                "slot": "0"
+              },
+              {
+                "label": "attester",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "validUntil",
+                "type": "t_uint64",
+                "offset": 20,
+                "slot": "1"
+              },
+              {
+                "label": "dataLocation",
+                "type": "t_enum(DataLocation)1290",
+                "offset": 28,
+                "slot": "1"
+              },
+              {
+                "label": "revoked",
+                "type": "t_bool",
+                "offset": 29,
+                "slot": "1"
+              },
+              {
+                "label": "recipients",
+                "type": "t_array(t_bytes_storage)dyn_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "data",
+                "type": "t_bytes_storage",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(InitializableStorage)64_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OffchainAttestation)1282_storage": {
+            "label": "struct OffchainAttestation",
+            "members": [
+              {
+                "label": "attester",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint64",
+                "offset": 20,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)14_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(SPStorage)859_storage": {
+            "label": "struct SP.SPStorage",
+            "members": [
+              {
+                "label": "paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "schemaRegistry",
+                "type": "t_mapping(t_uint64,t_struct(Schema)1314_storage)",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "attestationRegistry",
+                "type": "t_mapping(t_uint64,t_struct(Attestation)1276_storage)",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "offchainAttestationRegistry",
+                "type": "t_mapping(t_string_memory_ptr,t_struct(OffchainAttestation)1282_storage)",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "schemaCounter",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "attestationCounter",
+                "type": "t_uint64",
+                "offset": 8,
+                "slot": "4"
+              },
+              {
+                "label": "initialSchemaCounter",
+                "type": "t_uint64",
+                "offset": 16,
+                "slot": "4"
+              },
+              {
+                "label": "initialAttestationCounter",
+                "type": "t_uint64",
+                "offset": 24,
+                "slot": "4"
+              },
+              {
+                "label": "globalHook",
+                "type": "t_contract(ISPGlobalHook)1156",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(Schema)1314_storage": {
+            "label": "struct Schema",
+            "members": [
+              {
+                "label": "registrant",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "revocable",
+                "type": "t_bool",
+                "offset": 20,
+                "slot": "0"
+              },
+              {
+                "label": "dataLocation",
+                "type": "t_enum(DataLocation)1290",
+                "offset": 21,
+                "slot": "0"
+              },
+              {
+                "label": "maxValidFor",
+                "type": "t_uint64",
+                "offset": 22,
+                "slot": "0"
+              },
+              {
+                "label": "hook",
+                "type": "t_contract(ISPHook)1170",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint64",
+                "offset": 20,
+                "slot": "1"
+              },
+              {
+                "label": "data",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:ethsign.SP": [
+            {
+              "contract": "SP",
+              "label": "paused",
+              "type": "t_bool",
+              "src": "src/core/SP.sol:19",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "SP",
+              "label": "schemaRegistry",
+              "type": "t_mapping(t_uint64,t_struct(Schema)1314_storage)",
+              "src": "src/core/SP.sol:20",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "SP",
+              "label": "attestationRegistry",
+              "type": "t_mapping(t_uint64,t_struct(Attestation)1276_storage)",
+              "src": "src/core/SP.sol:21",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "SP",
+              "label": "offchainAttestationRegistry",
+              "type": "t_mapping(t_string_memory_ptr,t_struct(OffchainAttestation)1282_storage)",
+              "src": "src/core/SP.sol:22",
+              "offset": 0,
+              "slot": "3"
+            },
+            {
+              "contract": "SP",
+              "label": "schemaCounter",
+              "type": "t_uint64",
+              "src": "src/core/SP.sol:23",
+              "offset": 0,
+              "slot": "4"
+            },
+            {
+              "contract": "SP",
+              "label": "attestationCounter",
+              "type": "t_uint64",
+              "src": "src/core/SP.sol:24",
+              "offset": 8,
+              "slot": "4"
+            },
+            {
+              "contract": "SP",
+              "label": "initialSchemaCounter",
+              "type": "t_uint64",
+              "src": "src/core/SP.sol:25",
+              "offset": 16,
+              "slot": "4"
+            },
+            {
+              "contract": "SP",
+              "label": "initialAttestationCounter",
+              "type": "t_uint64",
+              "src": "src/core/SP.sol:26",
+              "offset": 24,
+              "slot": "4"
+            },
+            {
+              "contract": "SP",
+              "label": "globalHook",
+              "type": "t_contract(ISPGlobalHook)1156",
+              "src": "src/core/SP.sol:27",
+              "offset": 0,
+              "slot": "5"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
