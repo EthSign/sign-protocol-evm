@@ -30,11 +30,12 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
-    mumbai: {
-      url: "https://rpc.ankr.com/polygon_mumbai",
-      chainId: 80001,
+    amoy: {
+      url: "https://rpc-amoy.polygon.technology/",
+      chainId: 80002,
       loggingEnabled: true,
       accounts: [process.env.PRIVATE_KEY!],
+      gasPrice: 3200000000,
       saveDeployments: true,
       zksync: false,
     },
@@ -141,7 +142,7 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       polygon: process.env.POLYGONSCAN_KEY!,
-      polygonMumbai: process.env.POLYGONSCAN_KEY!,
+      polygonAmoy: process.env.X1_API_KEY!,
       mantaPacific: process.env.MANTAPACIFIC_KEY!,
       mantaPacificTestnet: process.env.MANTAPACIFIC_TEST_KEY!,
       avax: process.env.SNOWTRACE_KEY!,
@@ -253,6 +254,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.routescan.io/v2/network/mainnet/evm/80085/etherscan",
           browserURL: "https://artio.beratrail.io/",
+        },
+      },
+      {
+        network: "polygonAmoy",
+        chainId: 80002,
+        urls: {
+          apiURL: "https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/AMOY_TESTNET",
+          browserURL: "https://www.oklink.com/amoy",
         },
       },
     ],
