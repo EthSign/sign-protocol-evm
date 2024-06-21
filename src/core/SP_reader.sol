@@ -67,25 +67,27 @@ contract Reader is OwnableUpgradeable {
     }
 
     /**
-     * @param id The unique id of the attestation. Takes a bytes32 as this is the datatype Verax uses
+     * @param _id The unique id of the attestation. Takes a bytes32 as this is the datatype Verax uses
      * @return Sign Protocol Attestation
      */
-    function getAttestationMethod1(bytes32 id) external view returns (SPAttestation memory) {
+    function getAttestationMethod1(bytes32 _id) external view returns (SPAttestation memory) {
         ReaderStorage storage $ = _getReaderStorage();
 
-        uint256 spId = uint256(id); // Converting bytes32 to uint256 for comparison
+        uint256 spId = uint256(_id); // Converting bytes32 to uint256 for comparison
 
         if (spId > type(uint64).max) {
             // ID is out of range for Sign Protocol
-            VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(id);
-            return _convertVeraxToSP_noID(vAttestation);
+            VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(_id);
+            return _convertVeraxToSP_nullID(vAttestation); // Attestation ID is out of range for Sign Protocol
         } else {
-            // ID is not out of range for Sign Protocol
-            SPAttestation memory attestation = $.signProtocol.getAttestation(uint64(spId));
+            // ID is in the range for Sign Protocol
+            SPAttestation memory attestation = $.signProtocol.getAttestation(uint64(spId)); // uint256 spID -> uint64
             if (attestation.attestTimestamp != 0) {
+                // Checks if attestation is empty
                 return attestation;
             } else {
-                VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(id);
+                // If SP Protocol Attestation does not exist
+                VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(_id);
                 return _convertVeraxToSP(vAttestation, uint64(spId));
             }
         }
@@ -93,7 +95,7 @@ contract Reader is OwnableUpgradeable {
 
     /**
      * @notice Helper Function: Transforms a Verax Attestation to a Sign Protocol Attestation
-     * @param _vAttestation - The Verax Attestation Format
+     * @param _vAttestation - The Verax Attestation
      * @param _id - AttestationId
      * @return Sign Protocol Attestation
      */
@@ -108,11 +110,12 @@ contract Reader is OwnableUpgradeable {
         SPAttestation memory attestation;
 
         if (uint256(_vAttestation.schemaId) > type(uint64).max) {
-            revert Incompatible();
+            attestation.schemaId = 0; // Leaving it null
+        } else {
+            attestation.schemaId = uint64(uint256(_vAttestation.schemaId)); // bytes32 -> uint256 -> uint64
         }
 
         attestation.linkedAttestationId = _id;
-        attestation.schemaId = uint64(uint256(_vAttestation.schemaId));
         attestation.attestTimestamp = _vAttestation.attestedDate;
         attestation.revokeTimestamp = _vAttestation.revocationDate;
         attestation.attester = _vAttestation.attester;
@@ -121,20 +124,17 @@ contract Reader is OwnableUpgradeable {
         attestation.recipients = new bytes[](1);
         attestation.recipients[0] = _vAttestation.subject;
         attestation.data = _vAttestation.attestationData;
-        // attestation.dataLocation (I do not believe they have a comparable property)
+        // attestation.dataLocation (I do not believe they have a comparable property - thus leaving as null)
 
         return attestation;
     }
 
     /**
      * @notice Helper Function: Transforms a Verax Attestation to a Sign Protocol Attestation
-     * @param _vAttestation - The Verax Attestation Format
+     * @param _vAttestation - The Verax Attestation
      * @return Sign Protocol Attestation
      */
-
-    // Question -- linkedAttestationId -- should it be 0 or some other value
-
-    function _convertVeraxToSP_noID(VeraxAttestation memory _vAttestation)
+    function _convertVeraxToSP_nullID(VeraxAttestation memory _vAttestation)
         private
         pure
         returns (SPAttestation memory)
@@ -142,11 +142,13 @@ contract Reader is OwnableUpgradeable {
         SPAttestation memory attestation;
 
         if (uint256(_vAttestation.schemaId) > type(uint64).max) {
-            revert Incompatible();
+            attestation.schemaId = 0; // Leaving it null
+        } else {
+            attestation.schemaId = uint64(uint256(_vAttestation.schemaId)); // bytes32 -> uint256 -> uint64
         }
 
         attestation.linkedAttestationId = 0; // Can create an arbitary number as the id is not in the uint64 range
-        attestation.schemaId = uint64(uint256(_vAttestation.schemaId));
+
         attestation.attestTimestamp = _vAttestation.attestedDate;
         attestation.revokeTimestamp = _vAttestation.revocationDate;
         attestation.attester = _vAttestation.attester;
@@ -155,54 +157,55 @@ contract Reader is OwnableUpgradeable {
         attestation.recipients = new bytes[](1);
         attestation.recipients[0] = _vAttestation.subject;
         attestation.data = _vAttestation.attestationData;
-        // attestation.dataLocation (I do not believe they have a comparable property)
+        // attestation.dataLocation (I do not believe they have a comparable property - thus leaving as null)
 
         return attestation;
     }
 
     /**
-     * @param id The unique id of the attestation. Takes a bytes32 as this is the datatype Verax uses
+     * @param _id The unique id of the attestation. Takes a bytes32 as this is the datatype Verax uses
      * @return Verax Attestation
      */
-    function getAttestationMethod2(bytes32 id) public view returns (VeraxAttestation memory) {
+    function getAttestationMethod2(bytes32 _id) external view returns (VeraxAttestation memory) {
         ReaderStorage storage $ = _getReaderStorage();
 
-        VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(id);
+        VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(_id);
 
+        // Checks if the Verax Attestation Exists
         if (vAttestation.attestedDate != 0) {
             return vAttestation;
-        }
+        } else {
+            uint256 spId = uint256(_id);
 
-        uint256 spId = uint256(id);
-
-        if (spId < type(uint64).max) {
-            SPAttestation memory attestation = $.signProtocol.getAttestation(uint64(spId));
-            if (attestation.attestTimestamp != 0) {
-                return _convertSPToVerax(attestation);
+            if (spId < type(uint64).max) {
+                SPAttestation memory attestation = $.signProtocol.getAttestation(uint64(spId));
+                if (attestation.attestTimestamp != 0) {
+                    return _convertSPToVerax(attestation);
+                }
             }
-            revert Invalid(); // If the id is not in Verax or Sign Protocol (revert)
+
+            return vAttestation; // Returns the empty Verax Attestation
         }
-        revert Invalid(); // This id is not possible in Sign Protocol
     }
 
     /**
      * @notice Helper Function: Transforms a Sign Protocol Attestation to a Verax Attestation
-     * @param attestation - The Sign Protocol Attestation Format
+     * @param _attestation - The Sign Protocol Attestation
      * @return Verax Attestation
      */
-    function _convertSPToVerax(SPAttestation memory attestation) private pure returns (VeraxAttestation memory) {
+    function _convertSPToVerax(SPAttestation memory _attestation) private pure returns (VeraxAttestation memory) {
         VeraxAttestation memory vAttestation;
 
-        vAttestation.attestationId = bytes32(uint256(attestation.linkedAttestationId));
-        vAttestation.schemaId = bytes32(uint256(attestation.schemaId));
-        vAttestation.attester = attestation.attester;
-        vAttestation.attestedDate = attestation.attestTimestamp;
-        vAttestation.expirationDate = attestation.validUntil;
-        vAttestation.revocationDate = attestation.revokeTimestamp;
-        vAttestation.revoked = attestation.revoked;
-        vAttestation.attestationData = attestation.data;
+        vAttestation.attestationId = bytes32(uint256(_attestation.linkedAttestationId)); // uint64 -> uint256 -> bytes32
+        vAttestation.schemaId = bytes32(uint256(_attestation.schemaId)); // uint64 -> uint256 -> bytes32
+        vAttestation.attester = _attestation.attester;
+        vAttestation.attestedDate = _attestation.attestTimestamp;
+        vAttestation.expirationDate = _attestation.validUntil;
+        vAttestation.revocationDate = _attestation.revokeTimestamp;
+        vAttestation.revoked = _attestation.revoked;
+        vAttestation.attestationData = _attestation.data;
 
-        vAttestation.subject = attestation.recipients[0];
+        vAttestation.subject = _attestation.recipients[0];
         // Sign Protocol has a array while Verax only has one (I have decided to take the first)
 
         // vAttestation.replacedBy = 0; -- Does not exist in Sign Protocol
