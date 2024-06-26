@@ -1,6 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config";
 import { config as configENV } from "dotenv";
-import "@nomicfoundation/hardhat-toolbox-viem";
 import "@nomicfoundation/hardhat-foundry";
 import "@openzeppelin/hardhat-upgrades";
 import "solidity-docgen";
@@ -152,6 +151,13 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    arbitrum: {
+      chainId: 42161,
+      url: "https://arbitrum.llamarpc.com",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
   },
   etherscan: {
     apiKey: {
@@ -174,6 +180,7 @@ const config: HardhatUserConfig = {
       berachainTestnet: process.env.BERACHAIN_TESTNET_API_KEY!,
       opSepolia: process.env.OP_ETHERSCAN_API_KEY!,
       optimism: process.env.OP_ETHERSCAN_API_KEY!,
+      arbitrum: process.env.ARBITRUM_API_KEY!,
     },
     customChains: [
       {
