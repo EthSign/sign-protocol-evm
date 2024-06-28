@@ -76,7 +76,7 @@ contract SPReader is OwnableUpgradeable {
     }
 
     /**
-     * @param _id The unique id of the attestation (bytes32)
+     * @param id The unique id of the attestation (bytes32)
      * @return Verax Attestation
      */
     function getAttestationVerax(bytes32 id) external view returns (VeraxAttestation memory) {
