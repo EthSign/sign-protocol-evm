@@ -17,9 +17,6 @@ contract SPReader is OwnableUpgradeable {
     bytes32 private constant SPReaderStorageLocation =
         0x82ea65dbd7b30e84b1db8304693baa92edebefa6829498cda2f2368355a52200;
 
-    error Incompatible();
-    error DoesNotExist();
-
     function _getSPReaderStorage() internal pure returns (SPReaderStorage storage $) {
         assembly {
             $.slot := SPReaderStorageLocation
@@ -40,9 +37,7 @@ contract SPReader is OwnableUpgradeable {
     }
 
     /**
-     * @notice Updates the address of the Verax Registry.
-     * @dev Only the owner of the contract can call this function. Reverts if the provided address is the zero address.
-     * @param veraxAddress The new address of the Verax Registry.
+     * @notice Updates the address of the Verax Registry
      */
     function updateVeraxAddress(address veraxAddress) external onlyOwner {
         SPReaderStorage storage $ = _getSPReaderStorage();
@@ -50,9 +45,7 @@ contract SPReader is OwnableUpgradeable {
     }
 
     /**
-     * @notice Updates the address of the Sign Protocol Contract.
-     * @dev Only the owner of the contract can call this function. Reverts if the provided address is the zero address.
-     * @param spAddress The new address of the Sign Protocol Contract.
+     * @notice Updates the address of the Sign Protocol Contract
      */
     function updateSPAddress(address spAddress) external onlyOwner {
         SPReaderStorage storage $ = _getSPReaderStorage();
@@ -60,51 +53,50 @@ contract SPReader is OwnableUpgradeable {
     }
 
     /**
-     * @param _id The unique id of the attestation. Takes a bytes32 as this is the datatype Verax uses
+     * @param id -- The unique id of the attestation (bytes32)
      * @return Sign Protocol Attestation
      */
-    function getAttestationSP(bytes32 _id) external view returns (SPAttestation memory) {
+    function getAttestationSP(bytes32 id) external view returns (SPAttestation memory) {
         SPReaderStorage storage $ = _getSPReaderStorage();
 
-        uint256 spId = uint256(_id); // Converting bytes32 to uint256 for comparison
+        uint256 spId = uint256(id); // Converting id bytes32 to spID uint256 for comparison
 
-        if (spId > type(uint64).max) {
-            // ID is out of range for Sign Protocol
-            VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(_id);
-            return _convertVeraxToSP(vAttestation); // Attestation ID is out of range for Sign Protocol
-        } else {
-            // ID is in the range for Sign Protocol
+        // Checks if Attestation ID is in the range of SP
+        if (spId <= type(uint64).max) {
+            // Attestation ID is in range for Sign Protocol
             SPAttestation memory attestation = $.signProtocol.getAttestation(uint64(spId)); // uint256 spID -> uint64
+            // Checks if attestation is empty
             if (attestation.attestTimestamp != 0) {
-                // Checks if attestation is empty
                 return attestation;
-            } else {
-                // If SP Protocol Attestation does not exist
-                VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(_id);
-                return _convertVeraxToSP(vAttestation);
             }
         }
+        // Attestation ID is out of range for Sign Protocol or SP Attestation is Empty
+        VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(id);
+        return _convertVeraxToSP(vAttestation);
     }
 
     /**
-     * @param _id The unique id of the attestation. Takes a bytes32 as this is the datatype Verax uses
+     * @param _id The unique id of the attestation (bytes32)
      * @return Verax Attestation
      */
-    function getAttestationVerax(bytes32 _id) external view returns (VeraxAttestation memory) {
+    function getAttestationVerax(bytes32 id) external view returns (VeraxAttestation memory) {
         SPReaderStorage storage $ = _getSPReaderStorage();
 
-        VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(_id);
+        VeraxAttestation memory vAttestation = $.veraxRegistry.getAttestation(id);
 
         // Checks if the Verax Attestation Exists
         if (vAttestation.attestedDate != 0) {
             return vAttestation;
         } else {
-            uint256 spId = uint256(_id);
+            // Verax Attestation does not exist
+            uint256 spId = uint256(id);
 
+            // Checks if Attestation ID is in the range of SP
             if (spId <= type(uint64).max) {
                 SPAttestation memory attestation = $.signProtocol.getAttestation(uint64(spId));
+                // Checks If Attestation is Empty
                 if (attestation.attestTimestamp != 0) {
-                    return _convertSPToVerax(attestation);
+                    return _convertSPToVerax(attestation, id);
                 }
             }
 
@@ -114,8 +106,6 @@ contract SPReader is OwnableUpgradeable {
 
     /**
      * @notice Helper Function: Transforms a Verax Attestation to a Sign Protocol Attestation
-     * @param _vAttestation - The Verax Attestation
-     * @return attestation Sign Protocol Attestation
      */
     function _convertVeraxToSP(VeraxAttestation memory _vAttestation)
         private
@@ -124,7 +114,7 @@ contract SPReader is OwnableUpgradeable {
     {
         if (uint256(_vAttestation.schemaId) <= type(uint64).max) {
             attestation.schemaId = uint64(uint256(_vAttestation.schemaId)); // bytes32 -> uint256 -> uint64
-        }
+        } // Otherwise null
 
         attestation.attestTimestamp = _vAttestation.attestedDate;
         attestation.revokeTimestamp = _vAttestation.revocationDate;
@@ -134,7 +124,8 @@ contract SPReader is OwnableUpgradeable {
         attestation.recipients = new bytes[](1);
         attestation.recipients[0] = _vAttestation.subject;
         attestation.data = _vAttestation.attestationData;
-        // attestation.linkedAttestationId = 0;
+
+        // attestation.linkedAttestationId (I do not believe they have a comparable property - thus leaving as null)
         // attestation.dataLocation (I do not believe they have a comparable property - thus leaving as null)
 
         return attestation;
@@ -142,15 +133,16 @@ contract SPReader is OwnableUpgradeable {
 
     /**
      * @notice Helper Function: Transforms a Sign Protocol Attestation to a Verax Attestation
-     * @param _attestation - The Sign Protocol Attestation
-     * @return Verax Attestation
      */
-    function _convertSPToVerax(SPAttestation memory _attestation)
+    function _convertSPToVerax(
+        SPAttestation memory _attestation,
+        bytes32 id
+    )
         private
         pure
         returns (VeraxAttestation memory vAttestation)
     {
-        vAttestation.attestationId = bytes32(uint256(_attestation.linkedAttestationId)); // uint64 -> uint256 -> bytes32
+        vAttestation.attestationId = id;
         vAttestation.schemaId = bytes32(uint256(_attestation.schemaId)); // uint64 -> uint256 -> bytes32
         vAttestation.attester = _attestation.attester;
         vAttestation.attestedDate = _attestation.attestTimestamp;
