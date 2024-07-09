@@ -544,4 +544,83 @@ contract SPTest is Test {
     function _vrsToSignature(uint8 v, bytes32 r, bytes32 s) internal pure returns (bytes memory) {
         return abi.encodePacked(r, s, v);
     }
+
+    function test_AlreadyRevoked() public {
+        uint64 mockTimestamp = 12_345;
+        vm.warp(mockTimestamp);
+        // Register 2 different schemas
+        Schema[] memory schemas = _createMockSchemas();
+        schemas[1].revocable = true;
+        uint64[] memory schemaIds = sp.registerBatch(schemas, "");
+        // Make two normal attestations
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
+        vm.prank(prankSender);
+        uint64[] memory attestationIds = sp.attestBatch(attestations, indexingKeys, "", "");
+        string[] memory reasons = _createMockReasons();
+        // Revoke normally
+        vm.expectEmit();
+        emit AttestationRevoked(attestationIds[0], reasons[0]);
+        emit AttestationRevoked(attestationIds[1], reasons[1]);
+        vm.prank(prankSender);
+        sp.revokeBatch(attestationIds, reasons, "", "");
+        assertEq(sp.getAttestation(attestationIds[0]).revokeTimestamp, mockTimestamp);
+        // Revoke again and trigger `AttestationAlreadyRevoked`
+        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector));
+        vm.prank(prankSender);
+        sp.revokeBatch(attestationIds, reasons, "", "");
+
+        // Attest Inital Attestation Struct Again
+        vm.prank(prankSender);
+        sp.attestBatch(attestations, indexingKeys, "", "");
+
+        // Attest with Attestation[0] revoketimestamp > 0 and Attestation[1] revoked = true
+        (Attestation[] memory attestationsRevoked, string[] memory indexingKeysRevoked) =
+            _createRevokedMockAttestations(schemaIds);
+
+        vm.prank(prankSender);
+        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector));
+        sp.attest(attestationsRevoked[0], indexingKeysRevoked[0], "", "");
+
+        vm.prank(prankSender);
+        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector));
+        sp.attest(attestationsRevoked[1], indexingKeysRevoked[1], "", "");
+    }
+
+    function _createRevokedMockAttestations(uint64[] memory schemaIds)
+        internal
+        view
+        returns (Attestation[] memory, string[] memory)
+    {
+        Attestation memory attestation0 = Attestation({
+            schemaId: schemaIds[0],
+            linkedAttestationId: 0,
+            attestTimestamp: 0,
+            revokeTimestamp: 100,
+            data: "",
+            attester: prankSender,
+            validUntil: uint64(block.timestamp),
+            dataLocation: DataLocation.ONCHAIN,
+            revoked: false,
+            recipients: _createMockRecipients()
+        });
+        Attestation memory attestation1 = Attestation({
+            schemaId: schemaIds[1],
+            linkedAttestationId: 0,
+            attestTimestamp: 0,
+            revokeTimestamp: 0,
+            data: "",
+            attester: prankSender,
+            validUntil: uint64(block.timestamp),
+            dataLocation: DataLocation.ONCHAIN,
+            revoked: true,
+            recipients: _createMockRecipients()
+        });
+        Attestation[] memory attestations = new Attestation[](2);
+        attestations[0] = attestation0;
+        attestations[1] = attestation1;
+        string[] memory indexingKeys = new string[](2);
+        indexingKeys[0] = "test indexing key 0";
+        indexingKeys[1] = "test indexing key 1";
+        return (attestations, indexingKeys);
+    }
 }
