@@ -219,6 +219,47 @@ contract SPTest is Test {
         sp.revokeOffchainBatch(attestationIds, reasons, "");
     }
 
+    function test_attestationsAlreadyRevoked() public {
+        uint64 mockTimestamp = 12_345;
+        vm.warp(mockTimestamp);
+        // Register 2 different schemas
+        Schema[] memory schemas = _createMockSchemas();
+        schemas[1].revocable = true;
+        uint64[] memory schemaIds = sp.registerBatch(schemas, "");
+        // Make two normal attestations
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
+        vm.prank(prankSender);
+        uint64[] memory attestationIds = sp.attestBatch(attestations, indexingKeys, "", "");
+        string[] memory reasons = _createMockReasons();
+        // Revoke normally
+        vm.expectEmit();
+        emit AttestationRevoked(attestationIds[0], reasons[0]);
+        emit AttestationRevoked(attestationIds[1], reasons[1]);
+        vm.prank(prankSender);
+        sp.revokeBatch(attestationIds, reasons, "", "");
+        assertEq(sp.getAttestation(attestationIds[0]).revokeTimestamp, mockTimestamp);
+        // Revoke again and trigger `AttestationAlreadyRevoked`
+        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector));
+        vm.prank(prankSender);
+        sp.revokeBatch(attestationIds, reasons, "", "");
+
+        // Attest Initial Attestation Struct Again
+        vm.prank(prankSender);
+        sp.attestBatch(attestations, indexingKeys, "", "");
+
+        // Attest with Attestation[0] revoketimestamp > 0 and Attestation[1] revoked = true
+        (Attestation[] memory attestationsRevoked, string[] memory indexingKeysRevoked) =
+            _createRevokedMockAttestations(schemaIds);
+
+        vm.prank(prankSender);
+        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector));
+        sp.attest(attestationsRevoked[0], indexingKeysRevoked[0], "", "");
+
+        vm.prank(prankSender);
+        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector));
+        sp.attest(attestationsRevoked[1], indexingKeysRevoked[1], "", "");
+    }
+
     // DELEGATED TEST CASES
 
     function test_register_delegated() public {
@@ -527,65 +568,6 @@ contract SPTest is Test {
         return (attestations, indexingKeys);
     }
 
-    function _createMockReasons() internal pure returns (string[] memory) {
-        string[] memory reasons = new string[](2);
-        reasons[0] = "Reason 1";
-        reasons[1] = "Reason 2";
-        return reasons;
-    }
-
-    function _createMockResolverFeesETH() internal pure returns (uint256[] memory, uint256) {
-        uint256[] memory fees = new uint256[](2);
-        fees[0] = 1 ether;
-        fees[1] = 4 ether;
-        return (fees, 5 ether);
-    }
-
-    function _vrsToSignature(uint8 v, bytes32 r, bytes32 s) internal pure returns (bytes memory) {
-        return abi.encodePacked(r, s, v);
-    }
-
-    function test_AlreadyRevoked() public {
-        uint64 mockTimestamp = 12_345;
-        vm.warp(mockTimestamp);
-        // Register 2 different schemas
-        Schema[] memory schemas = _createMockSchemas();
-        schemas[1].revocable = true;
-        uint64[] memory schemaIds = sp.registerBatch(schemas, "");
-        // Make two normal attestations
-        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
-        vm.prank(prankSender);
-        uint64[] memory attestationIds = sp.attestBatch(attestations, indexingKeys, "", "");
-        string[] memory reasons = _createMockReasons();
-        // Revoke normally
-        vm.expectEmit();
-        emit AttestationRevoked(attestationIds[0], reasons[0]);
-        emit AttestationRevoked(attestationIds[1], reasons[1]);
-        vm.prank(prankSender);
-        sp.revokeBatch(attestationIds, reasons, "", "");
-        assertEq(sp.getAttestation(attestationIds[0]).revokeTimestamp, mockTimestamp);
-        // Revoke again and trigger `AttestationAlreadyRevoked`
-        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector));
-        vm.prank(prankSender);
-        sp.revokeBatch(attestationIds, reasons, "", "");
-
-        // Attest Inital Attestation Struct Again
-        vm.prank(prankSender);
-        sp.attestBatch(attestations, indexingKeys, "", "");
-
-        // Attest with Attestation[0] revoketimestamp > 0 and Attestation[1] revoked = true
-        (Attestation[] memory attestationsRevoked, string[] memory indexingKeysRevoked) =
-            _createRevokedMockAttestations(schemaIds);
-
-        vm.prank(prankSender);
-        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector));
-        sp.attest(attestationsRevoked[0], indexingKeysRevoked[0], "", "");
-
-        vm.prank(prankSender);
-        vm.expectRevert(abi.encodeWithSelector(AttestationAlreadyRevoked.selector));
-        sp.attest(attestationsRevoked[1], indexingKeysRevoked[1], "", "");
-    }
-
     function _createRevokedMockAttestations(uint64[] memory schemaIds)
         internal
         view
@@ -622,5 +604,23 @@ contract SPTest is Test {
         indexingKeys[0] = "test indexing key 0";
         indexingKeys[1] = "test indexing key 1";
         return (attestations, indexingKeys);
+    }
+
+    function _createMockReasons() internal pure returns (string[] memory) {
+        string[] memory reasons = new string[](2);
+        reasons[0] = "Reason 1";
+        reasons[1] = "Reason 2";
+        return reasons;
+    }
+
+    function _createMockResolverFeesETH() internal pure returns (uint256[] memory, uint256) {
+        uint256[] memory fees = new uint256[](2);
+        fees[0] = 1 ether;
+        fees[1] = 4 ether;
+        return (fees, 5 ether);
+    }
+
+    function _vrsToSignature(uint8 v, bytes32 r, bytes32 s) internal pure returns (bytes memory) {
+        return abi.encodePacked(r, s, v);
     }
 }
