@@ -18,11 +18,11 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.23",
+        version: "0.8.24",
         settings: {
           optimizer: {
             enabled: true,
-            runs: 50,
+            runs: 10,
           },
         },
       },
@@ -158,6 +158,13 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       zksync: false,
     },
+    bnb: {
+      chainId: 56,
+      url: "https://bsc-dataseed.bnbchain.org",
+      accounts: [process.env.PRIVATE_KEY!],
+      saveDeployments: true,
+      zksync: false,
+    },
   },
   etherscan: {
     apiKey: {
@@ -181,6 +188,7 @@ const config: HardhatUserConfig = {
       opSepolia: process.env.OP_ETHERSCAN_API_KEY!,
       optimism: process.env.OP_ETHERSCAN_API_KEY!,
       arbitrum: process.env.ARBITRUM_API_KEY!,
+      bnb: process.env.BSCSCAN_API_KEY!,
     },
     customChains: [
       {
@@ -301,6 +309,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-optimistic.etherscan.io/api",
           browserURL: "https://explorer.optimism.io",
+        },
+      },
+      {
+        network: "bnb",
+        chainId: 56,
+        urls: {
+          apiURL: "https://api.bscscan.com/api",
+          browserURL: "https://bscscan.com",
         },
       },
     ],
