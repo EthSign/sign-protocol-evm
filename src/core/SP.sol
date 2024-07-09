@@ -605,7 +605,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function version() external pure override returns (string memory) {
-        return "1.1.2";
+        return "1.1.3";
     }
 
     function getDelegatedRegisterHash(Schema memory schema) public pure override returns (bytes32) {
@@ -701,6 +701,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         emit SchemaRegistered(schemaId);
     }
 
+    // solhint-disable-next-line code-complexity
     function _attest(
         Attestation memory attestation,
         string memory indexingKey,
@@ -713,7 +714,6 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         if ($.paused) revert Paused();
         attestationId = $.attestationCounter++;
         attestation.attestTimestamp = uint64(block.timestamp);
-        attestation.revokeTimestamp = 0;
         // In delegation mode, the attester is already checked ahead of time.
         if (!delegateMode && attestation.attester != _msgSender()) {
             revert AttestationWrongAttester();
@@ -726,6 +726,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 && $.attestationRegistry[attestation.linkedAttestationId].attester != attestation.attester
         ) {
             revert AttestationWrongAttester();
+        }
+        if (attestation.revoked || attestation.revokeTimestamp > 0) {
+            revert AttestationAlreadyRevoked();
         }
         Schema memory s = $.schemaRegistry[attestation.schemaId];
         if (!__schemaExists(attestation.schemaId)) revert SchemaNonexistent();
