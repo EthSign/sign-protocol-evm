@@ -89,34 +89,6 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         _callGlobalHook();
     }
 
-    function registerBatch(
-        Schema[] calldata schemas,
-        bytes calldata delegateSignature
-    )
-        external
-        override
-        returns (uint64[] memory schemaIds)
-    {
-        bool delegateMode = delegateSignature.length != 0;
-        address registrant = schemas[0].registrant;
-        if (delegateMode) {
-            // solhint-disable-next-line max-line-length
-            __checkDelegationSignature(schemas[0].registrant, getDelegatedRegisterBatchHash(schemas), delegateSignature);
-        } else {
-            if (schemas[0].registrant != _msgSender()) {
-                revert SchemaWrongRegistrant();
-            }
-        }
-        schemaIds = new uint64[](schemas.length);
-        for (uint256 i = 0; i < schemas.length; i++) {
-            if (delegateMode && schemas[i].registrant != registrant) {
-                revert SchemaWrongRegistrant();
-            }
-            schemaIds[i] = _register(schemas[i]);
-        }
-        _callGlobalHook();
-    }
-
     function attest(
         Attestation calldata attestation,
         string calldata indexingKey,
@@ -610,10 +582,6 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     function getDelegatedRegisterHash(Schema memory schema) public pure override returns (bytes32) {
         return keccak256(abi.encode(REGISTER_ACTION_NAME, schema));
-    }
-
-    function getDelegatedRegisterBatchHash(Schema[] memory schemas) public pure override returns (bytes32) {
-        return keccak256(abi.encode(REGISTER_ACTION_NAME, schemas));
     }
 
     function getDelegatedAttestHash(Attestation memory attestation) public pure override returns (bytes32) {
