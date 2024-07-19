@@ -605,7 +605,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function version() external pure override returns (string memory) {
-        return "1.1.1";
+        return "1.1.2";
     }
 
     function getDelegatedRegisterHash(Schema memory schema) public pure override returns (bytes32) {
@@ -723,7 +723,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
         if (
             attestation.linkedAttestationId != 0
-                && $.attestationRegistry[attestation.linkedAttestationId].attester != _msgSender()
+                && $.attestationRegistry[attestation.linkedAttestationId].attester != attestation.attester
         ) {
             revert AttestationWrongAttester();
         }

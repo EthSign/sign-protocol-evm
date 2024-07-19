@@ -17,11 +17,11 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.23",
+        version: "0.8.24",
         settings: {
           optimizer: {
             enabled: true,
-            runs: 50,
+            runs: 10,
           },
         },
       },
@@ -144,6 +144,16 @@ const config: HardhatUserConfig = {
       url: "https://cyber.alt.technology/",
       accounts: [process.env.PRIVATE_KEY!],
     },
+    arbitrum: {
+      chainId: 42161,
+      url: "https://arbitrum.llamarpc.com",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
+    bnb: {
+      chainId: 56,
+      url: "https://bsc-dataseed.bnbchain.org",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
   },
   etherscan: {
     apiKey: {
@@ -172,6 +182,7 @@ const config: HardhatUserConfig = {
       arbitrumSepolia: process.env.ARBITRUM_API_KEY!,
       degen: "0",
       cyber: "0",
+      bnb: process.env.BSCSCAN_API_KEY!,
     },
     customChains: [
       {
@@ -340,6 +351,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://cyber-explorer.alt.technology/api",
           browserURL: "https://cyber-explorer.alt.technology/",
+        },
+      },
+      {
+        network: "bnb",
+        chainId: 56,
+        urls: {
+          apiURL: "https://api.bscscan.com/api",
+          browserURL: "https://bscscan.com",
         },
       },
     ],
