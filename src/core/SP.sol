@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GNU AGPLv3
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 import { ISP } from "../interfaces/ISP.sol";
 import { ISPHook } from "../interfaces/ISPHook.sol";
@@ -86,34 +86,6 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
             if (schema.registrant != _msgSender()) revert SchemaWrongRegistrant();
         }
         schemaId = _register(schema);
-        _callGlobalHook();
-    }
-
-    function registerBatch(
-        Schema[] calldata schemas,
-        bytes calldata delegateSignature
-    )
-        external
-        override
-        returns (uint64[] memory schemaIds)
-    {
-        bool delegateMode = delegateSignature.length != 0;
-        address registrant = schemas[0].registrant;
-        if (delegateMode) {
-            // solhint-disable-next-line max-line-length
-            __checkDelegationSignature(schemas[0].registrant, getDelegatedRegisterBatchHash(schemas), delegateSignature);
-        } else {
-            if (schemas[0].registrant != _msgSender()) {
-                revert SchemaWrongRegistrant();
-            }
-        }
-        schemaIds = new uint64[](schemas.length);
-        for (uint256 i = 0; i < schemas.length; i++) {
-            if (delegateMode && schemas[i].registrant != registrant) {
-                revert SchemaWrongRegistrant();
-            }
-            schemaIds[i] = _register(schemas[i]);
-        }
         _callGlobalHook();
     }
 
@@ -605,15 +577,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function version() external pure override returns (string memory) {
-        return "1.1.2";
+        return "1.1.3";
     }
 
     function getDelegatedRegisterHash(Schema memory schema) public pure override returns (bytes32) {
         return keccak256(abi.encode(REGISTER_ACTION_NAME, schema));
-    }
-
-    function getDelegatedRegisterBatchHash(Schema[] memory schemas) public pure override returns (bytes32) {
-        return keccak256(abi.encode(REGISTER_ACTION_NAME, schemas));
     }
 
     function getDelegatedAttestHash(Attestation memory attestation) public pure override returns (bytes32) {
@@ -701,6 +669,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         emit SchemaRegistered(schemaId);
     }
 
+    // solhint-disable-next-line code-complexity
     function _attest(
         Attestation memory attestation,
         string memory indexingKey,
@@ -713,7 +682,6 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         if ($.paused) revert Paused();
         attestationId = $.attestationCounter++;
         attestation.attestTimestamp = uint64(block.timestamp);
-        attestation.revokeTimestamp = 0;
         // In delegation mode, the attester is already checked ahead of time.
         if (!delegateMode && attestation.attester != _msgSender()) {
             revert AttestationWrongAttester();
@@ -726,6 +694,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
                 && $.attestationRegistry[attestation.linkedAttestationId].attester != attestation.attester
         ) {
             revert AttestationWrongAttester();
+        }
+        if (attestation.revoked || attestation.revokeTimestamp > 0) {
+            revert AttestationAlreadyRevoked();
         }
         Schema memory s = $.schemaRegistry[attestation.schemaId];
         if (!__schemaExists(attestation.schemaId)) revert SchemaNonexistent();

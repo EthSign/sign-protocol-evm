@@ -230,16 +230,6 @@ interface ISP is IVersionable {
         external;
 
     /**
-     * @notice Batch registers a Schema.
-     */
-    function registerBatch(
-        Schema[] calldata schemas,
-        bytes calldata delegateSignature
-    )
-        external
-        returns (uint64[] calldata schemaIds);
-
-    /**
      * @notice Batch attests.
      */
     function attestBatch(
@@ -358,11 +348,6 @@ interface ISP is IVersionable {
      * @notice Returns the hash that will be used to authorize a delegated registration.
      */
     function getDelegatedRegisterHash(Schema memory schema) external pure returns (bytes32);
-
-    /**
-     * @notice Returns the hash that will be used to authorize a delegated batch registration.
-     */
-    function getDelegatedRegisterBatchHash(Schema[] memory schemas) external pure returns (bytes32);
 
     /**
      * @notice Returns the hash that will be used to authorize a delegated attestation.
