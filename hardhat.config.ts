@@ -1,10 +1,8 @@
 import { HardhatUserConfig } from "hardhat/config";
 import { config as configENV } from "dotenv";
-import "@nomicfoundation/hardhat-toolbox-viem";
 import "@nomicfoundation/hardhat-foundry";
 import "@openzeppelin/hardhat-upgrades";
 import "solidity-docgen";
-import "hardhat-deploy";
 
 if (process.env.NODE_ENV !== "PRODUCTION") {
   configENV();
@@ -36,121 +34,115 @@ const config: HardhatUserConfig = {
       loggingEnabled: true,
       accounts: [process.env.PRIVATE_KEY!],
       gasPrice: 3200000000,
-      saveDeployments: true,
-      zksync: false,
     },
     sepolia: {
       chainId: 11155111,
       url: `https://eth-sepolia-public.unifra.io`,
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     polygon: {
       url: "https://polygon-rpc.com",
       chainId: 137,
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     zetachainTestnet: {
       chainId: 7001,
       url: "https://zetachain-athens-evm.blockpi.network/v1/rpc/public",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     zetachain: {
       chainId: 7000,
       url: "https://zetachain-evm.blockpi.network/v1/rpc/public",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     opBnbTestnet: {
       chainId: 5611,
       url: "https://opbnb-testnet-rpc.bnbchain.org",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     opBnb: {
       chainId: 204,
       url: "https://opbnb-mainnet-rpc.bnbchain.org",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     ethereum: {
       chainId: 1,
       url: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_ETH_API!}`,
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     scrollSepolia: {
       chainId: 534351,
       url: "https://sepolia-rpc.scroll.io/",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     scroll: {
       chainId: 534352,
       url: "https://rpc.ankr.com/scroll",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     okxX1Testnet: {
       chainId: 195,
       url: "https://testrpc.x1.tech/",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
+    },
+    xlayerMainnet: {
+      chainId: 196,
+      url: "https://rpc.xlayer.tech",
+      accounts: [process.env.PRIVATE_KEY!],
     },
     base: {
       chainId: 8453,
       url: "https://mainnet.base.org",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
-    baseTestnet: {
+    baseSepolia: {
       chainId: 84532,
       url: "https://sepolia.base.org",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     berachainTestnet: {
-      chainId: 80085,
-      url: "https://artio.rpc.berachain.com/",
-      gasPrice: 40000,
+      chainId: 80084,
+      url: "https://bartio.rpc.berachain.com/",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     plumeTestnet: {
       chainId: 161221135,
       url: "https://testnet-rpc.plumenetwork.xyz/http",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     opSepolia: {
       chainId: 11155420,
       url: "https://sepolia.optimism.io",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
     },
     optimism: {
       chainId: 10,
       url: "https://mainnet.optimism.io",
       accounts: [process.env.PRIVATE_KEY!],
-      saveDeployments: true,
-      zksync: false,
+    },
+    gnosis: {
+      url: "https://rpc.gnosischain.com",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
+    chiado: {
+      url: "https://rpc.chiadochain.net",
+      gasPrice: 1000000000,
+      accounts: [process.env.PRIVATE_KEY!],
+    },
+    arbitrumSepolia: {
+      chainId: 421614,
+      url: "https://sepolia-rollup.arbitrum.io/rpc",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
+    degen: {
+      chainId: 666666666,
+      url: "https://rpc.degen.tips",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
+    cyber: {
+      chainId: 7560,
+      url: "https://cyber.alt.technology/",
+      accounts: [process.env.PRIVATE_KEY!],
     },
   },
   etherscan: {
@@ -169,11 +161,17 @@ const config: HardhatUserConfig = {
       scroll: process.env.SCROLL_API_KEY!,
       x1: process.env.X1_API_KEY!,
       base: process.env.BASE_API_KEY!,
-      baseTestnet: process.env.BASE_SEPOLIA_API_KEY!,
+      baseSepolia: process.env.BASE_SEPOLIA_API_KEY!,
       plumeTestnet: process.env.PLUME_TESTNET_API_KEY!,
       berachainTestnet: process.env.BERACHAIN_TESTNET_API_KEY!,
       opSepolia: process.env.OP_ETHERSCAN_API_KEY!,
       optimism: process.env.OP_ETHERSCAN_API_KEY!,
+      chiado: process.env.GNOSISSCAN_API_KEY!,
+      gnosis: process.env.GNOSISSCAN_API_KEY!,
+      arbitrum: process.env.ARBITRUM_API_KEY!,
+      arbitrumSepolia: process.env.ARBITRUM_API_KEY!,
+      degen: "0",
+      cyber: "0",
     },
     customChains: [
       {
@@ -249,7 +247,15 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        network: "baseTestnet",
+        network: "x1",
+        chainId: 196,
+        urls: {
+          apiURL: "https://www.oklink.com/api/v5/explorer/XLAYER/api",
+          browserURL: "https://www.oklink.com/xlayer",
+        },
+      },
+      {
+        network: "baseSepolia",
         chainId: 84532,
         urls: {
           apiURL: "https://api-sepolia.basescan.org/api",
@@ -266,10 +272,10 @@ const config: HardhatUserConfig = {
       },
       {
         network: "berachainTestnet",
-        chainId: 80085,
+        chainId: 80084,
         urls: {
-          apiURL: "https://api.routescan.io/v2/network/mainnet/evm/80085/etherscan",
-          browserURL: "https://artio.beratrail.io/",
+          apiURL: "https://api.routescan.io/v2/network/testnet/evm/80084/etherscan/api",
+          browserURL: "https://bartio.beratrail.io/",
         },
       },
       {
@@ -294,6 +300,46 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-optimistic.etherscan.io/api",
           browserURL: "https://explorer.optimism.io",
+        },
+      },
+      {
+        network: "chiado",
+        chainId: 10200,
+        urls: {
+          apiURL: "https://gnosis-chiado.blockscout.com/api",
+          browserURL: "https://blockscout.com/gnosis/chiado",
+        },
+      },
+      {
+        network: "gnosis",
+        chainId: 100,
+        urls: {
+          apiURL: "https://api.gnosisscan.io/api",
+          browserURL: "https://gnosisscan.io/",
+        },
+      },
+      {
+        network: "arbitrumSepolia",
+        chainId: 421614,
+        urls: {
+          apiURL: "https://api-sepolia.arbiscan.io/api",
+          browserURL: "https://sepolia.arbiscan.io/",
+        },
+      },
+      {
+        network: "degen",
+        chainId: 666666666,
+        urls: {
+          apiURL: "https://explorer.degen.tips/api",
+          browserURL: "https://explorer.degen.tips/",
+        },
+      },
+      {
+        network: "cyber",
+        chainId: 7560,
+        urls: {
+          apiURL: "https://cyber-explorer.alt.technology/api",
+          browserURL: "https://cyber-explorer.alt.technology/",
         },
       },
     ],
