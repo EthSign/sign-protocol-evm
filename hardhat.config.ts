@@ -2,18 +2,13 @@ import { HardhatUserConfig } from "hardhat/config";
 import { config as configENV } from "dotenv";
 import "@nomicfoundation/hardhat-foundry";
 import "@openzeppelin/hardhat-upgrades";
-import "solidity-docgen";
+import "@nomicfoundation/hardhat-verify";
 
 if (process.env.NODE_ENV !== "PRODUCTION") {
   configENV();
 }
 
 const config: HardhatUserConfig = {
-  namedAccounts: {
-    deployer: {
-      default: 0,
-    },
-  },
   solidity: {
     compilers: [
       {
@@ -373,10 +368,6 @@ const config: HardhatUserConfig = {
         },
       },
     ],
-  },
-  docgen: {
-    pages: "files",
-    exclude: ["libraries", "mock"],
   },
   sourcify: {
     enabled: false,
