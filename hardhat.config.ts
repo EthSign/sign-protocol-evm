@@ -154,6 +154,16 @@ const config: HardhatUserConfig = {
       url: "https://bsc-dataseed.bnbchain.org",
       accounts: [process.env.PRIVATE_KEY!],
     },
+    celoAlfajores: {
+      chainId: 44787,
+      url: "https://alfajores-forno.celo-testnet.org",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
+    celo: {
+      chainId: 42220,
+      url: "https://forno.celo.org",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
   },
   etherscan: {
     apiKey: {
@@ -183,6 +193,7 @@ const config: HardhatUserConfig = {
       degen: "0",
       cyber: "0",
       bnb: process.env.BSCSCAN_API_KEY!,
+      celo: process.env.CELO_API_KEY!,
     },
     customChains: [
       {
