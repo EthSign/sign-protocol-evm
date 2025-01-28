@@ -9,7 +9,7 @@ async function main() {
   const zkWallet = new Wallet(process.env.PRIVATE_KEY!);
   const deployer = new Deployer(hre, zkWallet);
   const contract = await deployer.loadArtifact(contractName);
-  const instance = await hre.zkUpgrades.deployProxy(deployer.zkWallet, contract, [1, 1], { initializer: "initialize" });
+  const instance = await hre.zkUpgrades.deployProxy(deployer, contract, [1, 1], { initializer: "initialize" });
   await instance.waitForDeployment();
   console.log(contractName + " deployed to:", await instance.getAddress());
 }
