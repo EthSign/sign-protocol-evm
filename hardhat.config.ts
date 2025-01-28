@@ -2,18 +2,13 @@ import { HardhatUserConfig } from "hardhat/config";
 import { config as configENV } from "dotenv";
 import "@nomicfoundation/hardhat-foundry";
 import "@openzeppelin/hardhat-upgrades";
-import "solidity-docgen";
+import "@nomicfoundation/hardhat-verify";
+import "@matterlabs/hardhat-zksync";
+import "@matterlabs/hardhat-zksync-verify";
 
-if (process.env.NODE_ENV !== "PRODUCTION") {
-  configENV();
-}
+configENV();
 
 const config: HardhatUserConfig = {
-  namedAccounts: {
-    deployer: {
-      default: 0,
-    },
-  },
   solidity: {
     compilers: [
       {
@@ -26,6 +21,14 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+  },
+  zksolc: {
+    // Settings for Abstract Mainnet
+    version: "1.5.7", // Ensure version is 1.5.7!
+    settings: {
+      // Note: This must be true to call NonceHolder & ContractDeployer system contracts
+      enableEraVMExtensions: false,
+    },
   },
   networks: {
     amoy: {
@@ -154,6 +157,22 @@ const config: HardhatUserConfig = {
       url: "https://bsc-dataseed.bnbchain.org",
       accounts: [process.env.PRIVATE_KEY!],
     },
+    celoAlfajores: {
+      chainId: 44787,
+      url: "https://alfajores-forno.celo-testnet.org",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
+    celo: {
+      chainId: 42220,
+      url: "https://forno.celo.org",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
+    abstractMainnet: {
+      url: "https://api.mainnet.abs.xyz",
+      ethNetwork: "mainnet",
+      zksync: true,
+      chainId: 2741,
+    },
     plume: {
       chainId: 98865,
       url: "https://rpc.plumenetwork.xyz",
@@ -188,7 +207,6 @@ const config: HardhatUserConfig = {
       degen: "0",
       cyber: "0",
       bnb: process.env.BSCSCAN_API_KEY!,
-      plume: "0",
     },
     customChains: [
       {
@@ -365,14 +383,6 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.bscscan.com/api",
           browserURL: "https://bscscan.com",
-        },
-      },
-      {
-        network: "plume",
-        chainId: 98865,
-        urls: {
-          apiURL: "https://explorer.plumenetwork.xyz/api",
-          browserURL: "https://rpc.plumenetwork.xyz",
         },
       },
     ],
