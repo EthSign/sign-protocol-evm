@@ -1,0 +1,235 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x70140Bd1ec8019efA74C8795D555D5FFef60fb12",
+      "txHash": "0x913659c681d2d06d1fb165025396b2ea107fb8a35b1c984f4c34f82444ee538b",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "3ea8c9cac1eec79fbb0132dd82e2574e519161b0eb2c6a9063ebb018dd31cd0d": {
+      "address": "0x227D59f5938185A8F22274ef82bBB1475f3cd4A0",
+      "txHash": "0xed05df5915c4dab549c609a8eeb8a18a345c235aea5637e6f4ea1c399d4c7f2a",
+      "layout": {
+        "solcVersion": "0.8.26",
+        "storage": [],
+        "types": {
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_mapping(t_uint64,t_struct(Schema)8088_storage)": {
+            "label": "mapping(uint64 => struct Schema)"
+          },
+          "t_uint64": {
+            "label": "uint64"
+          },
+          "t_struct(Schema)8088_storage": {
+            "label": "struct Schema",
+            "members": [
+              {
+                "label": "registrant",
+                "type": "t_address"
+              },
+              {
+                "label": "revocable",
+                "type": "t_bool"
+              },
+              {
+                "label": "dataLocation",
+                "type": "t_enum(DataLocation)8064"
+              },
+              {
+                "label": "maxValidFor",
+                "type": "t_uint64"
+              },
+              {
+                "label": "hook",
+                "type": "t_contract(ISPHook)7656"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint64"
+              },
+              {
+                "label": "data",
+                "type": "t_string_storage"
+              }
+            ]
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_enum(DataLocation)8064": {
+            "label": "enum DataLocation",
+            "members": [
+              "ONCHAIN",
+              "ARWEAVE",
+              "IPFS",
+              "CUSTOM"
+            ]
+          },
+          "t_contract(ISPHook)7656": {
+            "label": "contract ISPHook"
+          },
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_mapping(t_uint64,t_struct(Attestation)8050_storage)": {
+            "label": "mapping(uint64 => struct Attestation)"
+          },
+          "t_struct(Attestation)8050_storage": {
+            "label": "struct Attestation",
+            "members": [
+              {
+                "label": "schemaId",
+                "type": "t_uint64"
+              },
+              {
+                "label": "linkedAttestationId",
+                "type": "t_uint64"
+              },
+              {
+                "label": "attestTimestamp",
+                "type": "t_uint64"
+              },
+              {
+                "label": "revokeTimestamp",
+                "type": "t_uint64"
+              },
+              {
+                "label": "attester",
+                "type": "t_address"
+              },
+              {
+                "label": "validUntil",
+                "type": "t_uint64"
+              },
+              {
+                "label": "dataLocation",
+                "type": "t_enum(DataLocation)8064"
+              },
+              {
+                "label": "revoked",
+                "type": "t_bool"
+              },
+              {
+                "label": "recipients",
+                "type": "t_array(t_bytes_storage)dyn_storage"
+              },
+              {
+                "label": "data",
+                "type": "t_bytes_storage"
+              }
+            ]
+          },
+          "t_array(t_bytes_storage)dyn_storage": {
+            "label": "bytes[]"
+          },
+          "t_bytes_storage": {
+            "label": "bytes"
+          },
+          "t_mapping(t_string_memory_ptr,t_struct(OffchainAttestation)8056_storage)": {
+            "label": "mapping(string => struct OffchainAttestation)"
+          },
+          "t_struct(OffchainAttestation)8056_storage": {
+            "label": "struct OffchainAttestation",
+            "members": [
+              {
+                "label": "attester",
+                "type": "t_address"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint64"
+              }
+            ]
+          },
+          "t_contract(ISPGlobalHook)7596": {
+            "label": "contract ISPGlobalHook"
+          }
+        },
+        "namespaces": {
+          "erc7201:ethsign.SP": [
+            {
+              "contract": "SP",
+              "label": "paused",
+              "type": "t_bool",
+              "src": "src/core/SP.sol:19"
+            },
+            {
+              "contract": "SP",
+              "label": "schemaRegistry",
+              "type": "t_mapping(t_uint64,t_struct(Schema)8088_storage)",
+              "src": "src/core/SP.sol:20"
+            },
+            {
+              "contract": "SP",
+              "label": "attestationRegistry",
+              "type": "t_mapping(t_uint64,t_struct(Attestation)8050_storage)",
+              "src": "src/core/SP.sol:21"
+            },
+            {
+              "contract": "SP",
+              "label": "offchainAttestationRegistry",
+              "type": "t_mapping(t_string_memory_ptr,t_struct(OffchainAttestation)8056_storage)",
+              "src": "src/core/SP.sol:22"
+            },
+            {
+              "contract": "SP",
+              "label": "schemaCounter",
+              "type": "t_uint64",
+              "src": "src/core/SP.sol:23"
+            },
+            {
+              "contract": "SP",
+              "label": "attestationCounter",
+              "type": "t_uint64",
+              "src": "src/core/SP.sol:24"
+            },
+            {
+              "contract": "SP",
+              "label": "initialSchemaCounter",
+              "type": "t_uint64",
+              "src": "src/core/SP.sol:25"
+            },
+            {
+              "contract": "SP",
+              "label": "initialAttestationCounter",
+              "type": "t_uint64",
+              "src": "src/core/SP.sol:26"
+            },
+            {
+              "contract": "SP",
+              "label": "globalHook",
+              "type": "t_contract(ISPGlobalHook)7596",
+              "src": "src/core/SP.sol:27"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

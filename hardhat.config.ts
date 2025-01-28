@@ -3,10 +3,10 @@ import { config as configENV } from "dotenv";
 import "@nomicfoundation/hardhat-foundry";
 import "@openzeppelin/hardhat-upgrades";
 import "@nomicfoundation/hardhat-verify";
+import "@matterlabs/hardhat-zksync";
+import "@matterlabs/hardhat-zksync-verify";
 
-if (process.env.NODE_ENV !== "PRODUCTION") {
-  configENV();
-}
+configENV();
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -21,6 +21,14 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+  },
+  zksolc: {
+    // Settings for Abstract Mainnet
+    version: "1.5.7", // Ensure version is 1.5.7!
+    settings: {
+      // Note: This must be true to call NonceHolder & ContractDeployer system contracts
+      enableEraVMExtensions: false,
+    },
   },
   networks: {
     amoy: {
@@ -159,6 +167,12 @@ const config: HardhatUserConfig = {
       url: "https://forno.celo.org",
       accounts: [process.env.PRIVATE_KEY!],
     },
+    abstractMainnet: {
+      url: "https://api.mainnet.abs.xyz",
+      ethNetwork: "mainnet",
+      zksync: true,
+      chainId: 2741,
+    },
   },
   etherscan: {
     apiKey: {
@@ -189,6 +203,7 @@ const config: HardhatUserConfig = {
       cyber: "0",
       bnb: process.env.BSCSCAN_API_KEY!,
       celo: process.env.CELO_API_KEY!,
+      abstractMainnet: "IEYKU3EEM5XCD76N7Y7HF9HG7M9ARZ2H4A",
     },
     customChains: [
       {
@@ -365,6 +380,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.bscscan.com/api",
           browserURL: "https://bscscan.com",
+        },
+      },
+      {
+        network: "abstractMainnet",
+        chainId: 2741,
+        urls: {
+          apiURL: "https://api.abscan.org/api",
+          browserURL: "https://abscan.org/",
         },
       },
     ],
