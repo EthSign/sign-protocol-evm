@@ -154,6 +154,11 @@ const config: HardhatUserConfig = {
       url: "https://bsc-dataseed.bnbchain.org",
       accounts: [process.env.PRIVATE_KEY!],
     },
+    plume: {
+      chainId: 98865,
+      url: "https://rpc.plumenetwork.xyz",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
   },
   etherscan: {
     apiKey: {
@@ -183,6 +188,7 @@ const config: HardhatUserConfig = {
       degen: "0",
       cyber: "0",
       bnb: process.env.BSCSCAN_API_KEY!,
+      plume: "0",
     },
     customChains: [
       {
@@ -359,6 +365,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.bscscan.com/api",
           browserURL: "https://bscscan.com",
+        },
+      },
+      {
+        network: "plume",
+        chainId: 98865,
+        urls: {
+          apiURL: "https://explorer.plumenetwork.xyz/api",
+          browserURL: "https://rpc.plumenetwork.xyz",
         },
       },
     ],
