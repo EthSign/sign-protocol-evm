@@ -33,7 +33,7 @@
     "ethers": "^6.11.1",
     "dotenv": "^16.3.1",
     "ds-test": "github:dapphub/ds-test",
-    "forge-std": "github:foundry-rs/forge-std#v1",
+    "forge-std": "github:foundry-rs/forge-std",
     "hardhat": "^2.22.5",
     "hardhat-deploy": "^0.12.4",
     "prettier": "^3.2.1",
