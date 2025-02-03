@@ -19,7 +19,7 @@ import { DataLocation } from "./DataLocation.sol";
  * `dataLocation`: Where `Attestation.data` is stored. See `DataLocation.DataLocation`.
  * `revoked`: If the Attestation has been revoked. It is possible to make a revoked Attestation.
  * `recipients`: The intended ABI-encoded recipients of this Attestation. This is of type `bytes` to support non-EVM
- * repicients.
+ * recipients.
  * `data`: The raw data of the Attestation based on `Schema.schema`. There is no enforcement here, however. Recommended
  * to use `abi.encode`.
  */
