@@ -178,6 +178,11 @@ const config: HardhatUserConfig = {
       url: "https://rpc.plumenetwork.xyz",
       accounts: [process.env.PRIVATE_KEY!],
     },
+    monadTestnet: {
+      chainId: 10143,
+      url: "https://testnet-rpc.monad.xyz",
+      accounts: [process.env.PRIVATE_KEY!],
+    },
   },
   etherscan: {
     apiKey: {
@@ -385,11 +390,15 @@ const config: HardhatUserConfig = {
           browserURL: "https://bscscan.com",
         },
       },
+      {
+        network: "monadTestnet",
+        chainId: 10143,
+        urls: {
+          apiURL: "https://api.bscscan.com/api",
+          browserURL: "https://testnet.monadexplorer.com/",
+        },
+      },
     ],
-  },
-  docgen: {
-    pages: "files",
-    exclude: ["libraries", "mock"],
   },
   sourcify: {
     enabled: false,
