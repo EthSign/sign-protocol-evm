@@ -30,3 +30,4 @@ docs
 scripts
 CODEOWNERS
 bun.lockb
+.devcontainer
