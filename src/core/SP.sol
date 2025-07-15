@@ -577,7 +577,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function version() external pure override returns (string memory) {
-        return "1.1.3";
+        return "1.1.3-SP";
     }
 
     function getDelegatedRegisterHash(Schema memory schema) public pure override returns (bytes32) {
