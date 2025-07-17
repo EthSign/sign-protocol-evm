@@ -25,6 +25,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         uint64 initialSchemaCounter;
         uint64 initialAttestationCounter;
         ISPGlobalHook globalHook;
+        ISP legacyContract;
     }
 
     // keccak256(abi.encode(uint256(keccak256("ethsign.SP")) - 1)) & ~bytes32(uint256(0xff))
@@ -69,6 +70,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     function setPause(bool paused) external onlyOwner {
         _getSPStorage().paused = paused;
+    }
+
+    function setLegacyContract(address legacy) external onlyOwner {
+        _getSPStorage().legacyContract = ISP(legacy);
     }
 
     function register(
@@ -550,14 +555,27 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     function getSchema(uint64 schemaId) external view override returns (Schema memory) {
         SPStorage storage $ = _getSPStorage();
-        if (schemaId < $.initialSchemaCounter) revert LegacySPRequired();
-        return $.schemaRegistry[schemaId];
+        // Check if ID is in current contract's range
+        if (schemaId >= $.initialSchemaCounter) {
+            return $.schemaRegistry[schemaId];
+        }
+        // If not, check legacy contract chain
+        if (address($.legacyContract) != address(0)) {
+            return $.legacyContract.getSchema(schemaId);
+        }
+        revert LegacySPRequired();
     }
 
     function getAttestation(uint64 attestationId) external view override returns (Attestation memory) {
         SPStorage storage $ = _getSPStorage();
-        if (attestationId < $.initialAttestationCounter) revert LegacySPRequired();
-        return $.attestationRegistry[attestationId];
+        if (attestationId >= $.initialAttestationCounter) {
+            return $.attestationRegistry[attestationId];
+        }
+
+        if (address($.legacyContract) != address(0)) {
+            return $.legacyContract.getAttestation(attestationId);
+        }
+        revert LegacySPRequired();
     }
 
     function getOffchainAttestation(string calldata offchainAttestationId)
