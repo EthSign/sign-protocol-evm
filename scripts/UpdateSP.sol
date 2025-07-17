@@ -11,7 +11,6 @@ contract UpdateSP is Script {
     function setUp() public {}
 
     function run() external {
-        // Read SP contract address from environment or use a default
         address spAddress = vm.envOr("SP_ADDRESS", address(0));
         require(spAddress != address(0), "SP_ADDRESS not set in .env");
 
@@ -52,11 +51,9 @@ contract UpdateSP is Script {
         string memory data
     ) public {
         console.log("Updating schema", schemaId);
-        
         vm.startBroadcast();
         sp.modifySchema(schemaId, revocable, maxValidFor, hook, data);
         vm.stopBroadcast();
-        
         console.log("Schema updated successfully");
     }
 
@@ -69,7 +66,6 @@ contract UpdateSP is Script {
         bytes memory data
     ) public {
         console.log("Updating attestation", attestationId);
-        
         vm.startBroadcast();
         sp.modifyAttestation(
             attestationId,
@@ -80,7 +76,6 @@ contract UpdateSP is Script {
             data
         );
         vm.stopBroadcast();
-        
         console.log("Attestation updated successfully");
     }
 
@@ -90,11 +85,9 @@ contract UpdateSP is Script {
         bool revoke
     ) public {
         console.log("Updating offchain attestation", offchainAttestationId);
-        
         vm.startBroadcast();
         sp.modifyOffchainAttestation(offchainAttestationId, newAttester, revoke);
         vm.stopBroadcast();
-        
         console.log("Offchain attestation updated successfully");
     }
 
