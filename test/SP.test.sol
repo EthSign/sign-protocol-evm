@@ -7,6 +7,7 @@ import "forge-std/Test.sol";
 import "forge-std/console2.sol";
 import { SP } from "../src/core/SP.sol";
 import { ISP } from "../src/interfaces/ISP.sol";
+import { ISPHook } from "../src/interfaces/ISPHook.sol";
 import { MockResolver } from "../src/mock/MockResolver.sol";
 import { Schema } from "../src/models/Schema.sol";
 import { DataLocation } from "../src/models/DataLocation.sol";
@@ -676,5 +677,35 @@ contract SPTest is Test {
 
     function _vrsToSignature(uint8 v, bytes32 r, bytes32 s) internal pure returns (bytes memory) {
         return abi.encodePacked(r, s, v);
+    }
+
+    function testLegacyContractQueryRedirection() public {
+        SP legacyContract = new SP();
+        SP currentContract = new SP();
+
+        legacyContract.initialize(1, 1);
+        currentContract.initialize(101, 1001);
+        currentContract.setLegacyContract(address(legacyContract));
+
+        Schema memory schema = Schema({
+            registrant: address(this),
+            revocable: true,
+            dataLocation: DataLocation.ONCHAIN,
+            maxValidFor: 0,
+            hook: ISPHook(address(0)),
+            timestamp: uint64(block.timestamp),
+            data: "Legacy Schema"
+        });
+        uint64 schemaId = legacyContract.register(schema, "");
+        assertEq(schemaId, 1);
+
+        // Query legacy schema through current contract
+        Schema memory retrieved = currentContract.getSchema(1);
+        assertEq(retrieved.data, "Legacy Schema");
+
+        SP isolatedContract = new SP();
+        isolatedContract.initialize(201, 2001);
+        vm.expectRevert(ISP.LegacySPRequired.selector);
+        isolatedContract.getSchema(50);
     }
 }
