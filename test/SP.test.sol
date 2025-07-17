@@ -26,7 +26,11 @@ contract SPTest is Test {
     event AttestationRevoked(uint64 attestationId, string reason);
     event OffchainAttestationMade(string attestationId);
     event OffchainAttestationRevoked(string attestationId, string reason);
+    event SchemaCreationEnabled(bool enabled);
+    event AttestationCreationEnabled(bool enabled);
 
+    error SchemaCreationDisabled();
+    error AttestationCreationDisabled();
     error SchemaNonexistent();
     error SchemaWrongRegistrant();
     error AttestationIrrevocable();
@@ -707,5 +711,96 @@ contract SPTest is Test {
         isolatedContract.initialize(201, 2001);
         vm.expectRevert(ISP.LegacySPRequired.selector);
         isolatedContract.getSchema(50);
+    }
+
+    //ATTESTATION AND SCHEMA CREATION DISABLED
+    function test_attestOffchain_disabled() public {
+        sp.setSchemaCreationEnabled(false);
+        sp.setAttestationCreationEnabled(false);
+        string[] memory attestationIds = _createMockAttestationIds();
+
+        vm.expectRevert(abi.encodeWithSelector(AttestationCreationDisabled.selector));
+        sp.attestOffchain(attestationIds[0], address(0), "");
+
+        vm.expectRevert(abi.encodeWithSelector(AttestationCreationDisabled.selector));
+        sp.attestOffchainBatch(attestationIds, address(0), "");
+    }
+
+    function test_register_disabled() public {
+        sp.setSchemaCreationEnabled(false);
+        sp.setAttestationCreationEnabled(false);
+        Schema[] memory schemas = _createMockSchemas();
+
+        vm.expectRevert(abi.encodeWithSelector(SchemaCreationDisabled.selector));
+        sp.register(schemas[0], "");
+
+        vm.expectRevert(abi.encodeWithSelector(SchemaCreationDisabled.selector));
+        sp.register(schemas[0], "0x1234");
+    }
+
+    function test_delegated_functions() public {
+        sp.setSchemaCreationEnabled(false);
+        sp.setAttestationCreationEnabled(false);
+        Schema[] memory schemas = _createMockSchemas();
+        uint64[] memory schemaIds = new uint64[](2);
+        schemaIds[0] = 1;
+        schemaIds[1] = 2;
+        (Attestation[] memory attestations,) = _createMockAttestations(schemaIds);
+
+        // These functions should still work because they only compute hashes
+        bytes32 registerHash = sp.getDelegatedRegisterHash(schemas[0]);
+        assertTrue(registerHash != 0);
+
+        bytes32 attestHash = sp.getDelegatedAttestHash(attestations[0]);
+        assertTrue(attestHash != 0);
+
+        bytes32 attestBatchHash = sp.getDelegatedAttestBatchHash(attestations);
+        assertTrue(attestBatchHash != 0);
+
+        bytes32 offchainAttestHash = sp.getDelegatedOffchainAttestHash("test");
+        assertTrue(offchainAttestHash != 0);
+
+        string[] memory attestationIds = _createMockAttestationIds();
+        bytes32 offchainBatchHash = sp.getDelegatedOffchainAttestBatchHash(attestationIds);
+        assertTrue(offchainBatchHash != 0);
+    }
+
+    function test_modify_attestation_with_disabled_creation() public {
+        Schema[] memory schemas = _createMockSchemas();
+        schemas[0].revocable = true;
+        schemas[1].revocable = true;
+        uint64[] memory schemaIds = new uint64[](2);
+        schemaIds[0] = sp.register(schemas[0], "");
+        schemaIds[1] = sp.register(schemas[1], "");
+
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
+
+        vm.prank(prankSender);
+        uint64[] memory attestationIds = sp.attestBatch(attestations, indexingKeys, "", "");
+
+        sp.setAttestationCreationEnabled(false);
+
+        string[] memory reasons = _createMockReasons();
+        vm.prank(prankSender);
+        sp.revokeBatch(attestationIds, reasons, "", "");
+
+        Attestation memory revokedAttestation = sp.getAttestation(attestationIds[0]);
+        assertTrue(revokedAttestation.revoked);
+        assertTrue(revokedAttestation.revokeTimestamp > 0);
+    }
+
+    function test_modify_schema_with_disabled_creation() public {
+        Schema[] memory schemas = _createMockSchemas();
+        uint64 schemaId = sp.register(schemas[0], "");
+
+        sp.setSchemaCreationEnabled(false);
+
+        Schema memory retrievedSchema = sp.getSchema(schemaId);
+        assertEq(retrievedSchema.data, schemas[0].data);
+        assertEq(retrievedSchema.revocable, schemas[0].revocable);
+        assertTrue(retrievedSchema.timestamp > 0);
+
+        vm.expectRevert(abi.encodeWithSelector(SchemaCreationDisabled.selector));
+        sp.register(schemas[1], "");
     }
 }

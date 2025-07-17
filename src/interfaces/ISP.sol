@@ -70,6 +70,10 @@ interface ISP is IVersionable {
      */
     error LegacySPRequired();
 
+    function setSchemaCreationEnabled(bool enabled) external;
+
+    function setAttestationCreationEnabled(bool enabled) external;
+
     /**
      * @notice Registers a Schema.
      * @dev Emits `SchemaRegistered`.

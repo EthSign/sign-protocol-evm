@@ -14,7 +14,15 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 
 // solhint-disable var-name-mixedcase
 contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
+    // Events for creation control
+    event SchemaCreationEnabled(bool enabled);
+    event AttestationCreationEnabled(bool enabled);
+
+    // Custom errors
+    error SchemaCreationDisabled();
+    error AttestationCreationDisabled();
     /// @custom:storage-location erc7201:ethsign.SP
+
     struct SPStorage {
         bool paused;
         mapping(uint64 => Schema) schemaRegistry;
@@ -26,6 +34,8 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         uint64 initialAttestationCounter;
         ISPGlobalHook globalHook;
         ISP legacyContract;
+        bool schemaCreationEnabled;
+        bool attestationCreationEnabled;
     }
 
     // keccak256(abi.encode(uint256(keccak256("ethsign.SP")) - 1)) & ~bytes32(uint256(0xff))
@@ -48,6 +58,23 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         }
     }
 
+    // Modifiers to control creation
+    modifier onlySchemaCreationEnabled() {
+        SPStorage storage $ = _getSPStorage();
+        if (!$.schemaCreationEnabled) {
+            revert SchemaCreationDisabled();
+        }
+        _;
+    }
+
+    modifier onlyAttestationCreationEnabled() {
+        SPStorage storage $ = _getSPStorage();
+        if (!$.attestationCreationEnabled) {
+            revert AttestationCreationDisabled();
+        }
+        _;
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         if (block.chainid != 31_337) {
@@ -62,6 +89,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         $.attestationCounter = attestationCounter_;
         $.initialSchemaCounter = schemaCounter_;
         $.initialAttestationCounter = attestationCounter_;
+        // Enable creation by default
+        $.schemaCreationEnabled = true;
+        $.attestationCreationEnabled = true;
     }
 
     function setGlobalHook(address hook) external onlyOwner {
@@ -76,12 +106,33 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         _getSPStorage().legacyContract = ISP(legacy);
     }
 
+    function setSchemaCreationEnabled(bool enabled) external onlyOwner {
+        SPStorage storage $ = _getSPStorage();
+        $.schemaCreationEnabled = enabled;
+        emit SchemaCreationEnabled(enabled);
+    }
+
+    function setAttestationCreationEnabled(bool enabled) external onlyOwner {
+        SPStorage storage $ = _getSPStorage();
+        $.attestationCreationEnabled = enabled;
+        emit AttestationCreationEnabled(enabled);
+    }
+
+    function isSchemaCreationEnabled() external view returns (bool) {
+        return _getSPStorage().schemaCreationEnabled;
+    }
+
+    function isAttestationCreationEnabled() external view returns (bool) {
+        return _getSPStorage().attestationCreationEnabled;
+    }
+
     function register(
         Schema memory schema,
         bytes calldata delegateSignature
     )
         external
         override
+        onlySchemaCreationEnabled
         returns (uint64 schemaId)
     {
         bool delegateMode = delegateSignature.length != 0;
@@ -102,6 +153,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     )
         external
         override
+        onlyAttestationCreationEnabled
         returns (uint64)
     {
         bool delegateMode = delegateSignature.length != 0;
@@ -125,6 +177,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     )
         external
         override
+        onlyAttestationCreationEnabled
         returns (uint64[] memory attestationIds)
     {
         bool delegateMode = delegateSignature.length != 0;
@@ -158,6 +211,10 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         payable
         returns (uint64)
     {
+        {
+            SPStorage storage $ = _getSPStorage();
+            if (!$.attestationCreationEnabled) revert AttestationCreationDisabled();
+        }
         bool delegateMode = delegateSignature.length != 0;
         if (delegateMode) {
             __checkDelegationSignature(attestation.attester, getDelegatedAttestHash(attestation), delegateSignature);
@@ -185,6 +242,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         override
         returns (uint64[] memory attestationIds)
     {
+        SPStorage storage $ = _getSPStorage();
+        if (!$.attestationCreationEnabled) revert AttestationCreationDisabled();
+
         bool delegateMode = delegateSignature.length != 0;
         address attester = attestations[0].attester;
         if (delegateMode) {
@@ -217,6 +277,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     )
         external
         override
+        onlyAttestationCreationEnabled
         returns (uint64)
     {
         bool delegateMode = delegateSignature.length != 0;
@@ -251,6 +312,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         override
         returns (uint64[] memory attestationIds)
     {
+        {
+            SPStorage storage $ = _getSPStorage();
+            if (!$.attestationCreationEnabled) revert AttestationCreationDisabled();
+        }
+
         bool delegateMode = delegateSignature.length != 0;
         // address attester = attestations[0].attester;
         if (delegateMode) {
@@ -287,6 +353,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     )
         external
         override
+        onlyAttestationCreationEnabled
     {
         address attester = _msgSender();
         if (delegateSignature.length != 0) {
@@ -306,6 +373,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     )
         external
         override
+        onlyAttestationCreationEnabled
     {
         address attester = _msgSender();
         if (delegateSignature.length != 0) {
