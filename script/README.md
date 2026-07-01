@@ -39,13 +39,13 @@ SP_IMPLEMENTATION=0x... \
 forge script script/UpgradeSPProxies.s.sol --rpc-url "$RPC_URL" --broadcast --private-key "$PRIVATE_KEY"
 ```
 
-To upgrade all manifest-discovered proxies for the current `block.chainid`, set:
+To upgrade the official active proxy for the current `block.chainid`, set:
 
 ```bash
 UPGRADE_ALL_KNOWN_PROXIES=true
 ```
 
-This is intentionally opt-in because some OpenZeppelin manifest files contain multiple historical proxies on the same
-chain. `SP_PROXY` is safer when only one active proxy should be upgraded.
+The batch registry follows the official address book at https://docs.sign.global/for-builders/address-book and excludes
+deprecated, struck-through entries. Use `SP_PROXY` if a non-address-book or deprecated proxy should be upgraded.
 
 If the new implementation has a reinitializer, pass its calldata through `UPGRADE_CALLDATA`.
