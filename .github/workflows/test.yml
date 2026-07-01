@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: bun i
 
+      - name: Run Forge fmt
+        run: forge fmt --check
+
       - name: Run Forge build
         run: |
           forge --version

@@ -601,23 +601,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return keccak256(abi.encode(ATTEST_OFFCHAIN_ACTION_NAME, offchainAttestationId));
     }
 
-    function getDelegatedOffchainAttestBatchHash(string[] memory offchainAttestationIds)
-        public
-        pure
-        returns (bytes32)
-    {
+    function getDelegatedOffchainAttestBatchHash(string[] memory offchainAttestationIds) public pure returns (bytes32) {
         return keccak256(abi.encode(ATTEST_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds));
     }
 
-    function getDelegatedRevokeHash(
-        uint64 attestationId,
-        string memory reason
-    )
-        public
-        pure
-        override
-        returns (bytes32)
-    {
+    function getDelegatedRevokeHash(uint64 attestationId, string memory reason) public pure override returns (bytes32) {
         return keccak256(abi.encode(REVOKE_ACTION_NAME, attestationId, reason));
     }
 
@@ -723,14 +711,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         emit OffchainAttestationMade(offchainAttestationId);
     }
 
-    function _revoke(
-        uint64 attestationId,
-        string memory reason,
-        bool delegateMode
-    )
-        internal
-        returns (uint64 schemaId)
-    {
+    function _revoke(uint64 attestationId, string memory reason, bool delegateMode) internal returns (uint64 schemaId) {
         SPStorage storage $ = _getSPStorage();
         if ($.paused) revert Paused();
         Attestation storage a = $.attestationRegistry[attestationId];
@@ -780,11 +761,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         internal
         view
     {
-        if (
-            !SignatureChecker.isValidSignatureNow(
+        if (!SignatureChecker.isValidSignatureNow(
                 delegateAttester, MessageHashUtils.toEthSignedMessageHash(hash), delegateSignature
-            )
-        ) {
+            )) {
             revert InvalidDelegateSignature();
         }
     }

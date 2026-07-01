@@ -75,7 +75,8 @@ contract MockResolver is ISPHook, MockResolverAdmin {
         external
         payable
         override
-    // solhint-disable-next-line no-empty-blocks
+        // solhint-disable-next-line no-empty-blocks
+
     { }
 
     function didReceiveAttestation(

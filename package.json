@@ -12,6 +12,8 @@
     "build": "forge build",
     "deploy:sp-impl": "forge script script/DeploySPImplementation.s.sol --broadcast",
     "deploy:sp-proxy": "forge script script/DeploySPProxy.s.sol --broadcast",
+    "fmt": "forge fmt",
+    "fmt:check": "forge fmt --check",
     "upgrade:sp-proxies": "forge script script/UpgradeSPProxies.s.sol --broadcast",
     "test": "forge test",
     "test:coverage": "forge coverage"
