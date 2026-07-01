@@ -66,9 +66,18 @@ interface ISP is IVersionable {
      */
     error InvalidDelegateSignature();
     /**
+     * @dev 0x30d3ba07
+     */
+    error DelegationExpired();
+    /**
      * @dev 0x5c34b9cc
      */
     error LegacySPRequired();
+
+    /**
+     * @notice Delegated signatures are ABI-encoded as `(uint256 nonce, uint64 deadline, bytes signature)`.
+     * `signature` must sign the EIP-712 digest returned by `getDelegatedAuthorizationDigest`.
+     */
 
     /**
      * @notice Registers a Schema.
@@ -408,6 +417,28 @@ interface ISP is IVersionable {
     )
         external
         pure
+        returns (bytes32);
+
+    /**
+     * @notice Returns the next delegated authorization nonce for an attester.
+     */
+    function delegationNonces(address delegateAttester) external view returns (uint256);
+
+    /**
+     * @notice Returns the EIP-712 digest that a delegated attester must sign.
+     * @param delegateAttester The account authorizing the delegated action.
+     * @param actionHash The action-specific hash returned by one of the `getDelegated*Hash` functions.
+     * @param nonce The current value returned by `delegationNonces(delegateAttester)`.
+     * @param deadline The last timestamp at which the delegated signature can be used.
+     */
+    function getDelegatedAuthorizationDigest(
+        address delegateAttester,
+        bytes32 actionHash,
+        uint256 nonce,
+        uint64 deadline
+    )
+        external
+        view
         returns (bytes32);
 
     /**
