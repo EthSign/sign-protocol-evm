@@ -45,8 +45,9 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
     bytes32 private constant DELEGATED_AUTHORIZATION_TYPEHASH =
         keccak256("DelegatedAuthorization(address delegateAttester,bytes32 actionHash,uint256 nonce,uint64 deadline)");
+    string private constant VERSION = "1.1.4";
     bytes32 private constant EIP712_NAME_HASH = keccak256("Sign Protocol");
-    bytes32 private constant EIP712_VERSION_HASH = keccak256("1.1.4");
+    bytes32 private constant EIP712_VERSION_HASH = keccak256(bytes(VERSION));
 
     function _getSPStorage() internal pure returns (SPStorage storage $) {
         assembly {
@@ -584,7 +585,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function version() external pure override returns (string memory) {
-        return "1.1.4";
+        return VERSION;
     }
 
     function getDelegatedRegisterHash(Schema memory schema) public pure override returns (bytes32) {
