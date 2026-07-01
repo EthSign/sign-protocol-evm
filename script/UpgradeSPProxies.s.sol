@@ -17,6 +17,13 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
     error NoKnownSPProxies(uint256 chainId);
     error ProxySelectionRequired(uint256 chainId);
     error ProxyHasNoCode(address proxy);
+    error ProxyAlreadyUsesImplementation(address proxy, address implementation);
+    error ProxyImplementationMismatch(address proxy, address expected, address actual);
+    error ProxyVersionMismatch(address proxy, string expected, string actual);
+
+    string internal constant EXPECTED_SP_VERSION = "1.1.4";
+    bytes32 internal constant ERC1967_IMPLEMENTATION_SLOT =
+        0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
     function run() public {
         vm.startBroadcast(_deployer);
@@ -45,15 +52,34 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
     function _upgradeProxy(address proxy, address implementation, bytes memory upgradeCallData) internal {
         if (proxy.code.length == 0) revert ProxyHasNoCode(proxy);
 
+        address oldImplementation = _proxyImplementation(proxy);
+        if (oldImplementation == implementation && upgradeCallData.length == 0) {
+            revert ProxyAlreadyUsesImplementation(proxy, implementation);
+        }
+
         string memory oldVersion = _readVersion(proxy);
         IUUPSProxy(proxy).upgradeToAndCall(implementation, upgradeCallData);
+        address actualImplementation = _proxyImplementation(proxy);
+        if (actualImplementation != implementation) {
+            revert ProxyImplementationMismatch(proxy, implementation, actualImplementation);
+        }
+
         string memory newVersion = _readVersion(proxy);
+        string memory expectedVersion = vm.envOr("SP_EXPECTED_VERSION", EXPECTED_SP_VERSION);
+        if (!_stringEq(newVersion, expectedVersion)) {
+            revert ProxyVersionMismatch(proxy, expectedVersion, newVersion);
+        }
 
         finalJsonLatest = vm.serializeAddress(jsonObjKeyAll, string.concat("SPProxy-", vm.toString(proxy)), proxy);
         console.log("Upgraded SP proxy:", proxy);
-        console.log("  implementation:", implementation);
+        console.log("  old implementation:", oldImplementation);
+        console.log("  new implementation:", implementation);
         console.log("  old version:", oldVersion);
         console.log("  new version:", newVersion);
+    }
+
+    function _proxyImplementation(address proxy) internal view returns (address) {
+        return address(uint160(uint256(vm.load(proxy, ERC1967_IMPLEMENTATION_SLOT))));
     }
 
     function _readVersion(address proxy) internal view returns (string memory) {
@@ -62,5 +88,9 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
         } catch {
             return "unknown";
         }
+    }
+
+    function _stringEq(string memory a, string memory b) internal pure returns (bool) {
+        return keccak256(bytes(a)) == keccak256(bytes(b));
     }
 }

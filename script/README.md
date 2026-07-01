@@ -20,8 +20,12 @@ forge script script/DeploySPImplementation.s.sol --rpc-url "$RPC_URL" --broadcas
 `DeploySPProxy` deploys the implementation unless `SP_IMPLEMENTATION` is set, then deploys an `ERC1967Proxy` through
 CREATE3 and initializes it with `SP.initialize(INITIAL_SCHEMA_COUNTER, INITIAL_ATTESTATION_COUNTER)`.
 
+If `PROD_OWNER` is set, the script transfers proxy ownership to that address even when the chain is not listed in
+`MAINNET_CHAIN_IDS`. If the chain is listed in `MAINNET_CHAIN_IDS`, `PROD_OWNER` is required.
+
 ```bash
 SP_IMPLEMENTATION=0x... \
+PROD_OWNER=0x... \
 INITIAL_SCHEMA_COUNTER=1 \
 INITIAL_ATTESTATION_COUNTER=1 \
 forge script script/DeploySPProxy.s.sol --rpc-url "$RPC_URL" --broadcast --private-key "$PRIVATE_KEY"
@@ -49,3 +53,6 @@ The batch registry follows the official address book at https://docs.sign.global
 deprecated, struck-through entries. Use `SP_PROXY` if a non-address-book or deprecated proxy should be upgraded.
 
 If the new implementation has a reinitializer, pass its calldata through `UPGRADE_CALLDATA`.
+
+The upgrade script verifies that the proxy's ERC-1967 implementation slot is updated and that `version()` returns
+`SP_EXPECTED_VERSION`, which defaults to `1.1.4`.

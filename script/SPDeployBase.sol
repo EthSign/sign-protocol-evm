@@ -16,11 +16,12 @@ abstract contract SPDeployBase is CreateXHelper {
     error DeploymentAddressMismatch(address computed, address deployed);
     error BroadcastSenderMismatch(address expected, address actual);
     error ProxyOwnerNotDeployer(address currentOwner, address expectedDeployer);
+    error ProdOwnerRequired(uint256 chainId);
 
     string internal constant DEPLOYMENT_CATEGORY = "sp";
     string internal constant DEFAULT_IMPL_SALT_ID = "sign-protocol/SP/implementation/v1.1.4";
     string internal constant DEFAULT_PROXY_SALT_ID = "sign-protocol/SP/proxy/v1";
-    bytes1 internal constant CROSSCHAIN_FLAG_ENABLED = 0x00;
+    bytes1 internal constant CROSSCHAIN_REDEPLOY_PROTECTION_DISABLED = 0x00;
 
     string public jsonPath;
     string public jsonPathLatest;
@@ -82,7 +83,7 @@ abstract contract SPDeployBase is CreateXHelper {
 
     function _saltFromId(string memory saltId) internal view returns (bytes32) {
         bytes11 randomSeed = bytes11(keccak256(abi.encode(saltId)));
-        return bytes32(abi.encodePacked(_deployer, CROSSCHAIN_FLAG_ENABLED, randomSeed));
+        return bytes32(abi.encodePacked(_deployer, CROSSCHAIN_REDEPLOY_PROTECTION_DISABLED, randomSeed));
     }
 
     function _computeCreate3Address(bytes32 salt) internal view returns (address) {
@@ -133,13 +134,13 @@ abstract contract SPDeployBase is CreateXHelper {
     }
 
     function _checkChainAndSetOwner(address proxy) internal {
-        if (!_isMainnetChain(block.chainid)) {
-            console.log("Testnet detected, skipping owner reassignment.");
-            return;
-        }
         if (_PROD_OWNER == address(0)) {
+            if (_isMainnetChain(block.chainid)) revert ProdOwnerRequired(block.chainid);
             console.log("PROD_OWNER not set, skipping owner reassignment.");
             return;
+        }
+        if (!_isMainnetChain(block.chainid)) {
+            console.log("Chain not listed in MAINNET_CHAIN_IDS. PROD_OWNER is set, requiring owner reassignment.");
         }
 
         address currentOwner = IOwnableUpgradeable(proxy).owner();
@@ -193,7 +194,7 @@ abstract contract SPDeployBase is CreateXHelper {
         address embedded = address(bytes20(salt));
 
         if (embedded == sender) {
-            if (flag == CROSSCHAIN_FLAG_ENABLED) {
+            if (flag == CROSSCHAIN_REDEPLOY_PROTECTION_DISABLED) {
                 return _efficientHash(bytes32(uint256(uint160(sender))), salt);
             }
         }
