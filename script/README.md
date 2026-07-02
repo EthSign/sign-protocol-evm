@@ -59,6 +59,14 @@ If the proxy owner is not the deployment signer, the wrapper does not attempt a 
 deploys or resolves the implementation and prints the `upgradeToAndCall(implementation, 0x)` calldata to submit through
 the owner contract or Safe.
 
+Existing proxy upgrades do not transfer ownership by default. To transfer a deployer-owned proxy to `PROD_OWNER` after a
+successful upgrade, set both:
+
+```bash
+TRANSFER_PROXY_OWNER=true
+PROD_OWNER=0x...
+```
+
 To upgrade one explicit proxy:
 
 ```bash

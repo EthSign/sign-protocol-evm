@@ -69,6 +69,9 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
         if (!_stringEq(newVersion, expectedVersion)) {
             revert ProxyVersionMismatch(proxy, expectedVersion, newVersion);
         }
+        if (_TRANSFER_PROXY_OWNER) {
+            _checkChainAndSetOwner(proxy);
+        }
 
         finalJsonLatest = vm.serializeAddress(jsonObjKeyAll, string.concat("SPProxy-", vm.toString(proxy)), proxy);
         console.log("Upgraded SP proxy:", proxy);

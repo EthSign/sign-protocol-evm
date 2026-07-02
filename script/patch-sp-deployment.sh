@@ -34,6 +34,8 @@ Optional env / flags:
   SP_PROXY              Overrides the address-book proxy.
   SP_IMPLEMENTATION     Uses an existing implementation instead of deploying/resolving one.
   SP_IMPL_SALT_ID       Defaults to sign-protocol/SP/implementation/v1.1.4.
+  TRANSFER_PROXY_OWNER  Set true to transfer proxy owner to PROD_OWNER after upgrade.
+  PROD_OWNER            Required when TRANSFER_PROXY_OWNER=true.
   UPGRADE_CALLDATA      Defaults to 0x.
 
 Flags:

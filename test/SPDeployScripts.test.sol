@@ -74,6 +74,30 @@ contract SPDeployScriptsTest is Test {
         assertEq(MockFutureSP(proxy).version(), "1.1.5");
     }
 
+    function test_upgradeProxy_doesNotTransferOwnerByDefault() public {
+        UpgradeSPProxiesHarness harness = new UpgradeSPProxiesHarness();
+        SP implementation = new SP();
+        address proxy = harness.deployProxy(address(implementation));
+        MockFutureSP futureImplementation = new MockFutureSP();
+
+        harness.configureTransfer(deployer, prodOwner, false);
+        harness.upgradeProxy(proxy, address(futureImplementation), "");
+
+        assertEq(OwnableUpgradeable(proxy).owner(), address(harness));
+    }
+
+    function test_upgradeProxy_transfersOwnerWhenEnabled() public {
+        UpgradeSPProxiesHarness harness = new UpgradeSPProxiesHarness();
+        SP implementation = new SP();
+        address proxy = harness.deployProxy(address(implementation));
+        MockFutureSP futureImplementation = new MockFutureSP();
+
+        harness.configureTransfer(address(harness), prodOwner, true);
+        harness.upgradeProxy(proxy, address(futureImplementation), "");
+
+        assertEq(OwnableUpgradeable(proxy).owner(), prodOwner);
+    }
+
     function test_upgradeProxy_revertsWhenImplementationVersionIsUnreadable() public {
         UpgradeSPProxiesHarness harness = new UpgradeSPProxiesHarness();
         SP implementation = new SP();
@@ -113,6 +137,12 @@ contract SPDeployBaseHarness is SPDeployBase {
 contract UpgradeSPProxiesHarness is UpgradeSPProxies {
     bool internal _hasExpectedVersionOverride;
     string internal _expectedVersionOverride;
+
+    function configureTransfer(address deployer_, address prodOwner_, bool transferProxyOwner) external {
+        _deployer = deployer_;
+        _PROD_OWNER = prodOwner_;
+        _TRANSFER_PROXY_OWNER = transferProxyOwner;
+    }
 
     function setExpectedVersionOverride(string memory expectedVersion) external {
         _hasExpectedVersionOverride = true;

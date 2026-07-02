@@ -33,6 +33,7 @@ abstract contract SPDeployBase is CreateXHelper {
     address internal _deployer;
     address internal _PROD_OWNER;
     address internal _ALLOWED_DEPLOYMENT_SENDER;
+    bool internal _TRANSFER_PROXY_OWNER;
     uint256[] internal _MAINNET_CHAIN_IDS;
 
     function setUp() public virtual {
@@ -41,6 +42,7 @@ abstract contract SPDeployBase is CreateXHelper {
         _deployer = vm.envOr("DEPLOYER", msg.sender);
         _PROD_OWNER = vm.envOr("PROD_OWNER", address(0));
         _ALLOWED_DEPLOYMENT_SENDER = vm.envOr("ALLOWED_DEPLOYMENT_SENDER", address(0));
+        _TRANSFER_PROXY_OWNER = vm.envOr("TRANSFER_PROXY_OWNER", false);
         uint256[] memory emptyChainIds;
         _MAINNET_CHAIN_IDS = vm.envOr("MAINNET_CHAIN_IDS", ",", emptyChainIds);
 
