@@ -35,6 +35,31 @@ forge script script/DeploySPProxy.s.sol --rpc-url "$RPC_URL" --broadcast --priva
 
 `UpgradeSPProxies` deploys the implementation unless `SP_IMPLEMENTATION` is set, then upgrades existing UUPS proxies.
 
+For the normal patch flow, use the wrapper script so RPC URLs, official proxy addresses, and Foundry env are derived from
+one chain alias:
+
+```bash
+ALCHEMY_API_KEY=... \
+PRIVATE_KEY=... \
+bun run patch:sp -- base
+```
+
+Add `--broadcast` after the simulation succeeds:
+
+```bash
+ALCHEMY_API_KEY=... \
+PRIVATE_KEY=... \
+bun run patch:sp -- base --broadcast
+```
+
+Run `bun run patch:sp -- --list` for supported aliases. Alchemy-supported chains are resolved from
+`ALCHEMY_API_KEY`; chains that are not available through Alchemy require their chain-specific RPC env var, such as
+`PLUME_TESTNET_RPC_URL`, or `--rpc-url`.
+
+If the proxy owner is not the deployment signer, the wrapper does not attempt a direct upgrade. With `--broadcast`, it
+deploys or resolves the implementation and prints the `upgradeToAndCall(implementation, 0x)` calldata to submit through
+the owner contract or Safe.
+
 To upgrade one explicit proxy:
 
 ```bash
