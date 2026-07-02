@@ -100,6 +100,20 @@ normalize_address() {
     lower "$1"
 }
 
+# cast >= 1.x prints decoded strings wrapped in double quotes; older versions do not.
+strip_quotes() {
+    local value="$1"
+    value="${value#\"}"
+    value="${value%\"}"
+    echo "$value"
+}
+
+read_proxy_version() {
+    local raw
+    raw="$(cast call "$SP_PROXY_RESOLVED" 'version()(string)' --rpc-url "$RPC_URL_RESOLVED")" || return 1
+    strip_quotes "$raw"
+}
+
 resolve_chain() {
     local key
     key="$(lower "$1")"
@@ -294,7 +308,7 @@ deploy_implementation_for_safe() {
     log_file="$(mktemp "${TMPDIR:-/tmp}/sp-impl-deploy.XXXXXX.log")"
 
     echo "Deploying/resolving SP implementation for Safe/contract-owner upgrade..."
-    export ALLOWED_DEPLOYMENT_SENDER="$DEPLOYER_RESOLVED"
+    export ALLOWED_DEPLOYMENT_SENDER="${ALLOWED_DEPLOYMENT_SENDER:-$DEPLOYER_RESOLVED}"
     run_forge_script script/DeploySPImplementation.s.sol DeploySPImplementation 2>&1 | tee "$log_file"
 
     local implementation=""
@@ -314,8 +328,9 @@ deploy_implementation_for_safe() {
 
 print_safe_upgrade() {
     local implementation="$1"
-    local data
+    local data implementation_suffix
     data="$(cast calldata 'upgradeToAndCall(address,bytes)' "$implementation" "$UPGRADE_CALLDATA_RESOLVED")"
+    implementation_suffix="$(lower "${implementation#0x}")"
 
     cat <<EOF
 
@@ -327,6 +342,11 @@ Submit this transaction through the proxy owner:
   Data:  $data
 
 Implementation: $implementation
+
+After the owner executes it, verify with:
+
+  cast storage $SP_PROXY_RESOLVED $IMPLEMENTATION_SLOT --rpc-url <RPC_URL>   # must end with $implementation_suffix
+  cast call $SP_PROXY_RESOLVED 'version()(string)' --rpc-url <RPC_URL>       # must return $VERSION
 EOF
 }
 
@@ -400,7 +420,7 @@ PROXY_CODE="$(cast code "$SP_PROXY_RESOLVED" --rpc-url "$RPC_URL_RESOLVED")"
 [[ "$PROXY_CODE" != "0x" ]] || die "no code at SP proxy $SP_PROXY_RESOLVED on chain $CHAIN_ID"
 
 OWNER="$(cast call "$SP_PROXY_RESOLVED" 'owner()(address)' --rpc-url "$RPC_URL_RESOLVED")"
-CURRENT_VERSION="$(cast call "$SP_PROXY_RESOLVED" 'version()(string)' --rpc-url "$RPC_URL_RESOLVED" 2>/dev/null || echo unknown)"
+CURRENT_VERSION="$(read_proxy_version 2>/dev/null || echo unknown)"
 
 echo "Owner:       $OWNER"
 echo "Version:     $CURRENT_VERSION"
@@ -432,7 +452,7 @@ echo "Running UUPS upgrade script..."
 run_forge_script script/UpgradeSPProxies.s.sol UpgradeSPProxies
 
 if [[ "$BROADCAST" == true ]]; then
-    NEW_VERSION="$(cast call "$SP_PROXY_RESOLVED" 'version()(string)' --rpc-url "$RPC_URL_RESOLVED")"
+    NEW_VERSION="$(read_proxy_version)"
     RAW_IMPL="$(cast storage "$SP_PROXY_RESOLVED" "$IMPLEMENTATION_SLOT" --rpc-url "$RPC_URL_RESOLVED")"
     echo
     echo "Post-upgrade version:        $NEW_VERSION"
