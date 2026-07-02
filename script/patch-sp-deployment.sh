@@ -27,6 +27,7 @@ Required env:
   PRIVATE_KEY           Required only with --broadcast, or to derive DEPLOYER.
 
 Optional env / flags:
+  ENV_FILE              Env file to load. Defaults to .env when present.
   DEPLOYER              Defaults to cast wallet address --private-key "$PRIVATE_KEY".
   RPC_URL               Fallback RPC URL for unsupported chains.
   <CHAIN>_RPC_URL       Chain-specific fallback for unsupported chains, e.g. PLUME_TESTNET_RPC_URL.
@@ -98,6 +99,41 @@ lower() {
 
 normalize_address() {
     lower "$1"
+}
+
+trim() {
+    local value="$1"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    echo "$value"
+}
+
+load_dotenv() {
+    local env_file="${ENV_FILE:-.env}"
+    [[ -f "$env_file" ]] || return
+
+    local line key value
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="$(trim "$line")"
+        [[ -z "$line" || "${line:0:1}" == "#" ]] && continue
+        if [[ "$line" == export\ * ]]; then
+            line="$(trim "${line#export }")"
+        fi
+        [[ "$line" == *=* ]] || continue
+
+        key="$(trim "${line%%=*}")"
+        value="$(trim "${line#*=}")"
+        [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+        if [[ "$value" == \"*\" && "$value" == *\" ]]; then
+            value="${value:1:${#value}-2}"
+        elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
+            value="${value:1:${#value}-2}"
+        fi
+
+        if [[ -z "${!key+x}" ]]; then
+            export "$key=$value"
+        fi
+    done < "$env_file"
 }
 
 # cast >= 1.x prints decoded strings wrapped in double quotes; older versions do not.
@@ -392,6 +428,7 @@ done
 
 [[ -n "$CHAIN_INPUT" ]] || die "missing chain. Run with --help or --list."
 
+load_dotenv
 resolve_chain "$CHAIN_INPUT"
 resolve_rpc_url
 resolve_deployer
