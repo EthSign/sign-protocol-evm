@@ -21,7 +21,6 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
     error ProxyImplementationMismatch(address proxy, address expected, address actual);
     error ProxyVersionMismatch(address proxy, string expected, string actual);
 
-    string internal constant EXPECTED_SP_VERSION = "1.1.4";
     bytes32 internal constant ERC1967_IMPLEMENTATION_SLOT =
         0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
@@ -58,6 +57,7 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
         }
 
         string memory oldVersion = _readVersion(proxy);
+        string memory expectedVersion = _expectedVersion(implementation);
         IUUPSProxy(proxy).upgradeToAndCall(implementation, upgradeCallData);
         address actualImplementation = _proxyImplementation(proxy);
         if (actualImplementation != implementation) {
@@ -65,7 +65,6 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
         }
 
         string memory newVersion = _readVersion(proxy);
-        string memory expectedVersion = vm.envOr("SP_EXPECTED_VERSION", EXPECTED_SP_VERSION);
         if (!_stringEq(newVersion, expectedVersion)) {
             revert ProxyVersionMismatch(proxy, expectedVersion, newVersion);
         }
@@ -80,6 +79,12 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
 
     function _proxyImplementation(address proxy) internal view returns (address) {
         return address(uint160(uint256(vm.load(proxy, ERC1967_IMPLEMENTATION_SLOT))));
+    }
+
+    function _expectedVersion(address implementation) internal view returns (string memory) {
+        string memory versionOverride = vm.envOr("SP_EXPECTED_VERSION", string(""));
+        if (bytes(versionOverride).length != 0) return versionOverride;
+        return _readVersion(implementation);
     }
 
     function _readVersion(address proxy) internal view returns (string memory) {

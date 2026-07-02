@@ -9,10 +9,8 @@ optimizer_runs = 50
 build_info = true
 extra_output = ["storageLayout"]
 auto_detect_remappings = true
-ffi = true
 fs_permissions = [
-    { access = "read-write", path = "./deployments/" },
-    { access = "read", path = "./" }
+    { access = "read-write", path = "./deployments/" }
 ]
 
 [fmt]

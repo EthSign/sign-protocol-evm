@@ -199,6 +199,7 @@ abstract contract SPDeployBase is CreateXHelper {
             }
         }
 
+        // This project only generates salts with flag 0x00. Other CreateX guard modes are not supported here.
         return keccak256(abi.encode(salt));
     }
 

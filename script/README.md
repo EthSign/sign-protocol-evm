@@ -55,4 +55,4 @@ deprecated, struck-through entries. Use `SP_PROXY` if a non-address-book or depr
 If the new implementation has a reinitializer, pass its calldata through `UPGRADE_CALLDATA`.
 
 The upgrade script verifies that the proxy's ERC-1967 implementation slot is updated and that `version()` returns
-`SP_EXPECTED_VERSION`, which defaults to `1.1.4`.
+`SP_EXPECTED_VERSION`. If `SP_EXPECTED_VERSION` is unset, the script uses the resolved implementation's `version()`.

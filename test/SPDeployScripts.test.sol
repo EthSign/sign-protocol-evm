@@ -57,8 +57,22 @@ contract SPDeployScriptsTest is Test {
         address proxy = harness.deployProxy(address(implementation));
         MockOldSP oldImplementation = new MockOldSP();
 
+        vm.setEnv("SP_EXPECTED_VERSION", "1.1.4");
         vm.expectRevert(abi.encodeWithSelector(ProxyVersionMismatch.selector, proxy, "1.1.4", "1.1.3"));
         harness.upgradeProxy(proxy, address(oldImplementation), "");
+        vm.setEnv("SP_EXPECTED_VERSION", "");
+    }
+
+    function test_upgradeProxy_defaultsExpectedVersionToImplementationVersion() public {
+        vm.setEnv("SP_EXPECTED_VERSION", "");
+        UpgradeSPProxiesHarness harness = new UpgradeSPProxiesHarness();
+        SP implementation = new SP();
+        address proxy = harness.deployProxy(address(implementation));
+        MockFutureSP futureImplementation = new MockFutureSP();
+
+        harness.upgradeProxy(proxy, address(futureImplementation), "");
+
+        assertEq(MockFutureSP(proxy).version(), "1.1.5");
     }
 
     function test_upgradeProxy_revertsWhenImplementationSlotDoesNotChange() public {
@@ -113,6 +127,14 @@ contract MockOwnableProxy {
 contract MockOldSP is UUPSUpgradeable, OwnableUpgradeable {
     function version() external pure returns (string memory) {
         return "1.1.3";
+    }
+
+    function _authorizeUpgrade(address) internal override onlyOwner { }
+}
+
+contract MockFutureSP is UUPSUpgradeable, OwnableUpgradeable {
+    function version() external pure returns (string memory) {
+        return "1.1.5";
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner { }
