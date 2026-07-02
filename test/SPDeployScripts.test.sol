@@ -10,7 +10,6 @@ import { SPDeployBase } from "../script/SPDeployBase.sol";
 import { UpgradeSPProxies } from "../script/UpgradeSPProxies.s.sol";
 
 error ProdOwnerRequired(uint256 chainId);
-error ProxyAlreadyUsesImplementation(address proxy, address implementation);
 error ProxyImplementationMismatch(address proxy, address expected, address actual);
 error ProxyVersionMismatch(address proxy, string expected, string actual);
 error ProxyVersionUnreadable(address target);
@@ -43,13 +42,16 @@ contract SPDeployScriptsTest is Test {
         harness.checkChainAndSetOwner(address(proxy));
     }
 
-    function test_upgradeProxy_revertsNoopUpgradeWithoutCallData() public {
+    function test_upgradeProxy_skipsNoopUpgradeButTransfersOwnerWhenEnabled() public {
         UpgradeSPProxiesHarness harness = new UpgradeSPProxiesHarness();
         SP implementation = new SP();
         address proxy = harness.deployProxy(address(implementation));
 
-        vm.expectRevert(abi.encodeWithSelector(ProxyAlreadyUsesImplementation.selector, proxy, address(implementation)));
+        harness.configureTransfer(address(harness), prodOwner, true);
         harness.upgradeProxy(proxy, address(implementation), "");
+
+        assertEq(SP(proxy).version(), "1.1.4");
+        assertEq(OwnableUpgradeable(proxy).owner(), prodOwner);
     }
 
     function test_upgradeProxy_revertsWhenPostUpgradeVersionIsUnexpected() public {

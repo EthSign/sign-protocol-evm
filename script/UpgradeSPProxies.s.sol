@@ -17,7 +17,6 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
     error NoKnownSPProxies(uint256 chainId);
     error ProxySelectionRequired(uint256 chainId);
     error ProxyHasNoCode(address proxy);
-    error ProxyAlreadyUsesImplementation(address proxy, address implementation);
     error ProxyImplementationMismatch(address proxy, address expected, address actual);
     error ProxyVersionMismatch(address proxy, string expected, string actual);
     error ProxyVersionUnreadable(address target);
@@ -53,13 +52,14 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
         if (proxy.code.length == 0) revert ProxyHasNoCode(proxy);
 
         address oldImplementation = _proxyImplementation(proxy);
-        if (oldImplementation == implementation && upgradeCallData.length == 0) {
-            revert ProxyAlreadyUsesImplementation(proxy, implementation);
-        }
-
         string memory oldVersion = _readVersion(proxy);
         string memory expectedVersion = _expectedVersion(implementation);
-        IUUPSProxy(proxy).upgradeToAndCall(implementation, upgradeCallData);
+
+        bool didUpgrade = oldImplementation != implementation || upgradeCallData.length != 0;
+        if (didUpgrade) {
+            IUUPSProxy(proxy).upgradeToAndCall(implementation, upgradeCallData);
+        }
+
         address actualImplementation = _proxyImplementation(proxy);
         if (actualImplementation != implementation) {
             revert ProxyImplementationMismatch(proxy, implementation, actualImplementation);
@@ -75,7 +75,11 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
         }
 
         finalJsonLatest = vm.serializeAddress(jsonObjKeyAll, string.concat("SPProxy-", vm.toString(proxy)), proxy);
-        console.log("Upgraded SP proxy:", proxy);
+        if (didUpgrade) {
+            console.log("Upgraded SP proxy:", proxy);
+        } else {
+            console.log("Verified SP proxy already uses implementation:", proxy);
+        }
         console.log("  old implementation:", oldImplementation);
         console.log("  new implementation:", implementation);
         console.log("  old version:", oldVersion);
