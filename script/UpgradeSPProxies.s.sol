@@ -20,6 +20,7 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
     error ProxyAlreadyUsesImplementation(address proxy, address implementation);
     error ProxyImplementationMismatch(address proxy, address expected, address actual);
     error ProxyVersionMismatch(address proxy, string expected, string actual);
+    error ProxyVersionUnreadable(address target);
 
     bytes32 internal constant ERC1967_IMPLEMENTATION_SLOT =
         0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
@@ -64,7 +65,7 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
             revert ProxyImplementationMismatch(proxy, implementation, actualImplementation);
         }
 
-        string memory newVersion = _readVersion(proxy);
+        string memory newVersion = _readVersionOrRevert(proxy);
         if (!_stringEq(newVersion, expectedVersion)) {
             revert ProxyVersionMismatch(proxy, expectedVersion, newVersion);
         }
@@ -81,10 +82,10 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
         return address(uint160(uint256(vm.load(proxy, ERC1967_IMPLEMENTATION_SLOT))));
     }
 
-    function _expectedVersion(address implementation) internal view returns (string memory) {
+    function _expectedVersion(address implementation) internal view virtual returns (string memory) {
         string memory versionOverride = vm.envOr("SP_EXPECTED_VERSION", string(""));
         if (bytes(versionOverride).length != 0) return versionOverride;
-        return _readVersion(implementation);
+        return _readVersionOrRevert(implementation);
     }
 
     function _readVersion(address proxy) internal view returns (string memory) {
@@ -92,6 +93,15 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
             return version;
         } catch {
             return "unknown";
+        }
+    }
+
+    function _readVersionOrRevert(address target) internal view returns (string memory) {
+        try ISPVersion(target).version() returns (string memory version) {
+            if (bytes(version).length == 0) revert ProxyVersionUnreadable(target);
+            return version;
+        } catch {
+            revert ProxyVersionUnreadable(target);
         }
     }
 

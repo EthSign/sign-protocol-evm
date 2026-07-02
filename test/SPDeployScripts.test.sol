@@ -13,6 +13,7 @@ error ProdOwnerRequired(uint256 chainId);
 error ProxyAlreadyUsesImplementation(address proxy, address implementation);
 error ProxyImplementationMismatch(address proxy, address expected, address actual);
 error ProxyVersionMismatch(address proxy, string expected, string actual);
+error ProxyVersionUnreadable(address target);
 
 contract SPDeployScriptsTest is Test {
     address internal deployer = address(0x1234);
@@ -57,14 +58,12 @@ contract SPDeployScriptsTest is Test {
         address proxy = harness.deployProxy(address(implementation));
         MockOldSP oldImplementation = new MockOldSP();
 
-        vm.setEnv("SP_EXPECTED_VERSION", "1.1.4");
+        harness.setExpectedVersionOverride("1.1.4");
         vm.expectRevert(abi.encodeWithSelector(ProxyVersionMismatch.selector, proxy, "1.1.4", "1.1.3"));
         harness.upgradeProxy(proxy, address(oldImplementation), "");
-        vm.setEnv("SP_EXPECTED_VERSION", "");
     }
 
     function test_upgradeProxy_defaultsExpectedVersionToImplementationVersion() public {
-        vm.setEnv("SP_EXPECTED_VERSION", "");
         UpgradeSPProxiesHarness harness = new UpgradeSPProxiesHarness();
         SP implementation = new SP();
         address proxy = harness.deployProxy(address(implementation));
@@ -73,6 +72,16 @@ contract SPDeployScriptsTest is Test {
         harness.upgradeProxy(proxy, address(futureImplementation), "");
 
         assertEq(MockFutureSP(proxy).version(), "1.1.5");
+    }
+
+    function test_upgradeProxy_revertsWhenImplementationVersionIsUnreadable() public {
+        UpgradeSPProxiesHarness harness = new UpgradeSPProxiesHarness();
+        SP implementation = new SP();
+        address proxy = harness.deployProxy(address(implementation));
+        MockNoVersionSP noVersionImplementation = new MockNoVersionSP();
+
+        vm.expectRevert(abi.encodeWithSelector(ProxyVersionUnreadable.selector, address(noVersionImplementation)));
+        harness.upgradeProxy(proxy, address(noVersionImplementation), "");
     }
 
     function test_upgradeProxy_revertsWhenImplementationSlotDoesNotChange() public {
@@ -102,6 +111,14 @@ contract SPDeployBaseHarness is SPDeployBase {
 }
 
 contract UpgradeSPProxiesHarness is UpgradeSPProxies {
+    bool internal _hasExpectedVersionOverride;
+    string internal _expectedVersionOverride;
+
+    function setExpectedVersionOverride(string memory expectedVersion) external {
+        _hasExpectedVersionOverride = true;
+        _expectedVersionOverride = expectedVersion;
+    }
+
     function deployProxy(address implementation) external returns (address) {
         bytes memory initData = abi.encodeCall(SP.initialize, (uint64(1), uint64(1)));
         return address(new ERC1967Proxy(implementation, initData));
@@ -109,6 +126,11 @@ contract UpgradeSPProxiesHarness is UpgradeSPProxies {
 
     function upgradeProxy(address proxy, address implementation, bytes memory upgradeCallData) external {
         _upgradeProxy(proxy, implementation, upgradeCallData);
+    }
+
+    function _expectedVersion(address implementation) internal view override returns (string memory) {
+        if (_hasExpectedVersionOverride) return _expectedVersionOverride;
+        return _readVersionOrRevert(implementation);
     }
 }
 
@@ -137,6 +159,10 @@ contract MockFutureSP is UUPSUpgradeable, OwnableUpgradeable {
         return "1.1.5";
     }
 
+    function _authorizeUpgrade(address) internal override onlyOwner { }
+}
+
+contract MockNoVersionSP is UUPSUpgradeable, OwnableUpgradeable {
     function _authorizeUpgrade(address) internal override onlyOwner { }
 }
 
