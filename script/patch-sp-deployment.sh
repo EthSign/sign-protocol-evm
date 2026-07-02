@@ -103,6 +103,17 @@ normalize_address() {
     lower "$1"
 }
 
+is_true() {
+    case "$(lower "${1:-}")" in
+        1 | true | yes)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 trim() {
     local value="$1"
     value="${value#"${value%%[![:space:]]*}"}"
@@ -111,8 +122,18 @@ trim() {
 }
 
 load_dotenv() {
-    local env_file="${ENV_FILE:-.env}"
-    [[ -f "$env_file" ]] || return
+    local env_file=".env"
+    local env_file_explicit=false
+    if [[ -n "${ENV_FILE:-}" ]]; then
+        env_file="$ENV_FILE"
+        env_file_explicit=true
+    fi
+    if [[ ! -f "$env_file" ]]; then
+        if [[ "$env_file_explicit" == true ]]; then
+            die "env file not found: $env_file"
+        fi
+        return 0
+    fi
 
     local line key value
     while IFS= read -r line || [[ -n "$line" ]]; do
@@ -150,6 +171,15 @@ read_proxy_version() {
     local raw
     raw="$(cast call "$SP_PROXY_RESOLVED" 'version()(string)' --rpc-url "$RPC_URL_RESOLVED")" || return 1
     strip_quotes "$raw"
+}
+
+validate_transfer_owner_config() {
+    if ! is_true "${TRANSFER_PROXY_OWNER:-false}"; then
+        return
+    fi
+    if [[ -z "${PROD_OWNER:-}" || "$(normalize_address "$PROD_OWNER")" == "0x0000000000000000000000000000000000000000" ]]; then
+        die "PROD_OWNER is required when TRANSFER_PROXY_OWNER=true"
+    fi
 }
 
 resolve_chain() {
@@ -431,6 +461,7 @@ done
 [[ -n "$CHAIN_INPUT" ]] || die "missing chain. Run with --help or --list."
 
 load_dotenv
+validate_transfer_owner_config
 resolve_chain "$CHAIN_INPUT"
 resolve_rpc_url
 resolve_deployer

@@ -70,6 +70,7 @@ contract UpgradeSPProxies is SPDeployBase, SPProxyRegistry {
             revert ProxyVersionMismatch(proxy, expectedVersion, newVersion);
         }
         if (_TRANSFER_PROXY_OWNER) {
+            if (_PROD_OWNER == address(0)) revert ProdOwnerRequired(block.chainid);
             _checkChainAndSetOwner(proxy);
         }
 

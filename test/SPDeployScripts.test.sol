@@ -98,6 +98,19 @@ contract SPDeployScriptsTest is Test {
         assertEq(OwnableUpgradeable(proxy).owner(), prodOwner);
     }
 
+    function test_upgradeProxy_revertsWhenTransferOwnerEnabledWithoutProdOwner() public {
+        UpgradeSPProxiesHarness harness = new UpgradeSPProxiesHarness();
+        SP implementation = new SP();
+        address proxy = harness.deployProxy(address(implementation));
+        MockFutureSP futureImplementation = new MockFutureSP();
+
+        vm.chainId(99_999);
+        harness.configureTransfer(address(harness), address(0), true);
+
+        vm.expectRevert(abi.encodeWithSelector(ProdOwnerRequired.selector, 99_999));
+        harness.upgradeProxy(proxy, address(futureImplementation), "");
+    }
+
     function test_upgradeProxy_revertsWhenImplementationVersionIsUnreadable() public {
         UpgradeSPProxiesHarness harness = new UpgradeSPProxiesHarness();
         SP implementation = new SP();
