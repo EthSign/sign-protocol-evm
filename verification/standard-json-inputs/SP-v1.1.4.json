@@ -94,9 +94,6 @@
     "metadata": {
       "bytecodeHash": "none"
     },
-    "compilationTarget": {
-      "src/core/SP.sol": "SP"
-    },
     "evmVersion": "cancun",
     "libraries": {},
     "outputSelection": {
