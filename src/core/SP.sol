@@ -25,6 +25,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         uint64 initialSchemaCounter;
         uint64 initialAttestationCounter;
         ISPGlobalHook globalHook;
+        mapping(address delegateAttester => uint256 nonce) delegationNonces;
     }
 
     // keccak256(abi.encode(uint256(keccak256("ethsign.SP")) - 1)) & ~bytes32(uint256(0xff))
@@ -40,6 +41,13 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     bytes32 private constant REVOKE_BATCH_ACTION_NAME = "REVOKE_BATCH";
     bytes32 private constant REVOKE_OFFCHAIN_ACTION_NAME = "REVOKE_OFFCHAIN";
     bytes32 private constant REVOKE_OFFCHAIN_BATCH_ACTION_NAME = "REVOKE_OFFCHAIN_BATCH";
+    bytes32 private constant EIP712_DOMAIN_TYPEHASH =
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+    bytes32 private constant DELEGATED_AUTHORIZATION_TYPEHASH =
+        keccak256("DelegatedAuthorization(address delegateAttester,bytes32 actionHash,uint256 nonce,uint64 deadline)");
+    string private constant VERSION = "1.1.4";
+    bytes32 private constant EIP712_NAME_HASH = keccak256("Sign Protocol");
+    bytes32 private constant EIP712_VERSION_HASH = keccak256(bytes(VERSION));
 
     function _getSPStorage() internal pure returns (SPStorage storage $) {
         assembly {
@@ -577,7 +585,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function version() external pure override returns (string memory) {
-        return "1.1.3";
+        return VERSION;
     }
 
     function getDelegatedRegisterHash(Schema memory schema) public pure override returns (bytes32) {
@@ -601,23 +609,11 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         return keccak256(abi.encode(ATTEST_OFFCHAIN_ACTION_NAME, offchainAttestationId));
     }
 
-    function getDelegatedOffchainAttestBatchHash(string[] memory offchainAttestationIds)
-        public
-        pure
-        returns (bytes32)
-    {
+    function getDelegatedOffchainAttestBatchHash(string[] memory offchainAttestationIds) public pure returns (bytes32) {
         return keccak256(abi.encode(ATTEST_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds));
     }
 
-    function getDelegatedRevokeHash(
-        uint64 attestationId,
-        string memory reason
-    )
-        public
-        pure
-        override
-        returns (bytes32)
-    {
+    function getDelegatedRevokeHash(uint64 attestationId, string memory reason) public pure override returns (bytes32) {
         return keccak256(abi.encode(REVOKE_ACTION_NAME, attestationId, reason));
     }
 
@@ -653,6 +649,29 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         returns (bytes32)
     {
         return keccak256(abi.encode(REVOKE_OFFCHAIN_BATCH_ACTION_NAME, offchainAttestationIds, reasons));
+    }
+
+    function delegationNonces(address delegateAttester) external view override returns (uint256) {
+        return _getSPStorage().delegationNonces[delegateAttester];
+    }
+
+    function getDelegatedAuthorizationDigest(
+        address delegateAttester,
+        bytes32 actionHash,
+        uint256 nonce,
+        uint64 deadline
+    )
+        public
+        view
+        override
+        returns (bytes32)
+    {
+        bytes32 domainSeparator = keccak256(
+            abi.encode(EIP712_DOMAIN_TYPEHASH, EIP712_NAME_HASH, EIP712_VERSION_HASH, block.chainid, address(this))
+        );
+        bytes32 structHash =
+            keccak256(abi.encode(DELEGATED_AUTHORIZATION_TYPEHASH, delegateAttester, actionHash, nonce, deadline));
+        return MessageHashUtils.toTypedDataHash(domainSeparator, structHash);
     }
 
     function _callGlobalHook() internal {
@@ -723,14 +742,7 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
         emit OffchainAttestationMade(offchainAttestationId);
     }
 
-    function _revoke(
-        uint64 attestationId,
-        string memory reason,
-        bool delegateMode
-    )
-        internal
-        returns (uint64 schemaId)
-    {
+    function _revoke(uint64 attestationId, string memory reason, bool delegateMode) internal returns (uint64 schemaId) {
         SPStorage storage $ = _getSPStorage();
         if ($.paused) revert Paused();
         Attestation storage a = $.attestationRegistry[attestationId];
@@ -774,18 +786,27 @@ contract SP is ISP, UUPSUpgradeable, OwnableUpgradeable {
 
     function __checkDelegationSignature(
         address delegateAttester,
-        bytes32 hash,
+        bytes32 actionHash,
         bytes memory delegateSignature
     )
         internal
-        view
     {
-        if (
-            !SignatureChecker.isValidSignatureNow(
-                delegateAttester, MessageHashUtils.toEthSignedMessageHash(hash), delegateSignature
-            )
-        ) {
+        if (delegateSignature.length < 128) revert InvalidDelegateSignature();
+
+        (uint256 nonce, uint64 deadline, bytes memory signature) =
+            abi.decode(delegateSignature, (uint256, uint64, bytes));
+        if (block.timestamp > deadline) revert DelegationExpired();
+
+        SPStorage storage $ = _getSPStorage();
+        if (nonce != $.delegationNonces[delegateAttester]) revert InvalidDelegateSignature();
+
+        bytes32 digest = getDelegatedAuthorizationDigest(delegateAttester, actionHash, nonce, deadline);
+        if (!SignatureChecker.isValidSignatureNow(delegateAttester, digest, signature)) {
             revert InvalidDelegateSignature();
+        }
+
+        unchecked {
+            $.delegationNonces[delegateAttester] = nonce + 1;
         }
     }
 

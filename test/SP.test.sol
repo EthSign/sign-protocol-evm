@@ -11,7 +11,6 @@ import { MockResolver } from "../src/mock/MockResolver.sol";
 import { Schema } from "../src/models/Schema.sol";
 import { DataLocation } from "../src/models/DataLocation.sol";
 import { Attestation, OffchainAttestation } from "../src/models/Attestation.sol";
-import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract SPTest is Test {
     ISP public sp;
@@ -37,6 +36,7 @@ contract SPTest is Test {
     error OffchainAttestationNonexistent();
     error OffchainAttestationAlreadyRevoked();
     error InvalidDelegateSignature();
+    error DelegationExpired();
 
     function setUp() public {
         sp = new SP();
@@ -312,10 +312,11 @@ contract SPTest is Test {
         Schema[] memory schemas = _createMockSchemas();
         schemas[0].registrant = signer;
         bytes32 hash = sp.getDelegatedRegisterHash(schemas[0]);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        bytes memory delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
         vm.expectRevert(abi.encodeWithSelector(SchemaWrongRegistrant.selector));
         sp.register(schemas[0], "");
-        sp.register(schemas[0], _vrsToSignature(v, r, s));
+        sp.register(schemas[0], delegateSignature);
+        assertEq(sp.delegationNonces(signer), 1);
     }
 
     function test_attest_delegated() public {
@@ -333,23 +334,24 @@ contract SPTest is Test {
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         attestations[0].attester = signer;
         bytes32 hash = sp.getDelegatedAttestHash(attestations[0]);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        bytes memory delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
         // Delegate attest batch
-        sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s), "");
+        sp.attest(attestations[0], indexingKeys[0], delegateSignature, "");
         Attestation memory attestation0Actual = sp.getAttestation(attestationId0);
         assertEq(attestation0Actual.attester, signer);
+        assertEq(sp.delegationNonces(signer), 1);
         // Alter attestation after generating signature, should fail signature check
         attestations[0].attester = prankSender;
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
+        sp.attestBatch(attestations, indexingKeys, delegateSignature, "");
         attestations[0].attester = signer;
         // Try to make signer sign for someone else, should fail checks
         // Altering the first reference attester, should revert with `InvalidDelegateSignature`
         attestations[0].attester = prankSender;
         hash = sp.getDelegatedAttestBatchHash(attestations);
-        (v, r, s) = vm.sign(signerPk, hash);
+        delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s), "");
+        sp.attest(attestations[0], indexingKeys[0], delegateSignature, "");
     }
 
     function test_attest_batch_delegated() public {
@@ -369,63 +371,64 @@ contract SPTest is Test {
         attestations[0].attester = signer;
         attestations[1].attester = signer;
         bytes32 hash = sp.getDelegatedAttestBatchHash(attestations);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        bytes memory delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
 
         // Delegate attest batch
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
+        sp.attestBatch(attestations, indexingKeys, delegateSignature, "");
         Attestation memory attestation0Actual = sp.getAttestation(attestationId0);
         Attestation memory attestation1Actual = sp.getAttestation(attestationId0 + 1);
         assertEq(attestation0Actual.attester, signer);
         assertEq(attestation1Actual.attester, signer);
+        assertEq(sp.delegationNonces(signer), 1);
 
         // Alter attestation after generating signature, should fail signature check
         attestations[1].attester = prankSender;
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
+        sp.attestBatch(attestations, indexingKeys, delegateSignature, "");
         attestations[1].attester = signer;
 
         // Try to make signer sign for someone else, should fail checks
         // Altering the first reference attester, should revert with `InvalidDelegateSignature`
         attestations[0].attester = prankSender;
         hash = sp.getDelegatedAttestBatchHash(attestations);
-        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
+        sp.attestBatch(attestations, indexingKeys, delegateSignature, "");
         attestations[0].attester = signer;
 
         // Altering the second attester, should fail attester consistency check
         attestations[1].attester = prankSender;
         hash = sp.getDelegatedAttestBatchHash(attestations);
-        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
         vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector));
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
+        sp.attestBatch(attestations, indexingKeys, delegateSignature, "");
     }
 
     function test_attest_offchain_delegated() public {
         string[] memory offchainAttestationIds = _createMockAttestationIds();
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         bytes32 hash = sp.getDelegatedOffchainAttestHash(offchainAttestationIds[0]);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
-        sp.attestOffchain(offchainAttestationIds[0], signer, _vrsToSignature(v, r, s));
+        bytes memory delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
+        sp.attestOffchain(offchainAttestationIds[0], signer, delegateSignature);
         OffchainAttestation memory offchainAttestation = sp.getOffchainAttestation(offchainAttestationIds[0]);
         assertEq(offchainAttestation.attester, signer);
         // Try to fail on purpose
         hash = sp.getDelegatedOffchainAttestHash(offchainAttestationIds[0]);
-        (v, r, s) = vm.sign(signerPk, hash);
+        delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.attestOffchain(offchainAttestationIds[1], prankSender, _vrsToSignature(v, r, s));
+        sp.attestOffchain(offchainAttestationIds[1], prankSender, delegateSignature);
     }
 
     function test_attest_offchain_batch_delegated() public {
         string[] memory offchainAttestationIds = _createMockAttestationIds();
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         bytes32 hash = sp.getDelegatedOffchainAttestBatchHash(offchainAttestationIds);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        bytes memory delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
         // Try to fail on purpose first
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.attestOffchainBatch(offchainAttestationIds, prankSender, _vrsToSignature(v, r, s));
+        sp.attestOffchainBatch(offchainAttestationIds, prankSender, delegateSignature);
         // Attesting correctly
-        sp.attestOffchainBatch(offchainAttestationIds, signer, _vrsToSignature(v, r, s));
+        sp.attestOffchainBatch(offchainAttestationIds, signer, delegateSignature);
         OffchainAttestation memory offchainAttestation = sp.getOffchainAttestation(offchainAttestationIds[0]);
         assertEq(offchainAttestation.attester, signer);
     }
@@ -445,17 +448,17 @@ contract SPTest is Test {
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         attestations[0].attester = signer;
         bytes32 hash = sp.getDelegatedAttestHash(attestations[0]);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
-        sp.attest(attestations[0], indexingKeys[0], _vrsToSignature(v, r, s), "");
+        bytes memory delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
+        sp.attest(attestations[0], indexingKeys[0], delegateSignature, "");
         // Delegated revoke
         // Try to fail on purpose first
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.revoke(attestationId0, "", _vrsToSignature(v, r, s), ""); // Still using the attest signature
+        sp.revoke(attestationId0, "", delegateSignature, ""); // Still using the attest signature
         // Revoke correctly
         string memory reason = "reason";
         hash = sp.getDelegatedRevokeHash(attestationId0, reason);
-        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
-        sp.revoke(attestationId0, reason, _vrsToSignature(v, r, s), "");
+        delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
+        sp.revoke(attestationId0, reason, delegateSignature, "");
     }
 
     function test_revoke_batch_delegated() public {
@@ -477,64 +480,167 @@ contract SPTest is Test {
         attestations[0].attester = signer;
         attestations[1].attester = signer;
         bytes32 hash = sp.getDelegatedAttestBatchHash(attestations);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
-        sp.attestBatch(attestations, indexingKeys, _vrsToSignature(v, r, s), "");
+        bytes memory delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
+        sp.attestBatch(attestations, indexingKeys, delegateSignature, "");
         // Revoke batch
         // Sign using the wrong signer first
         string[] memory reasons = _createMockReasons();
-        (, uint256 signerPk1) = makeAddrAndKey("signer1");
+        (address signer1, uint256 signerPk1) = makeAddrAndKey("signer1");
         hash = sp.getDelegatedRevokeBatchHash(attestationIds, reasons);
-        (v, r, s) = vm.sign(signerPk1, MessageHashUtils.toEthSignedMessageHash(hash));
+        delegateSignature = _createDelegatedSignature(signer1, signerPk1, hash);
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.revokeBatch(attestationIds, _createMockReasons(), _vrsToSignature(v, r, s), "");
+        sp.revokeBatch(attestationIds, _createMockReasons(), delegateSignature, "");
         // Revoke correctly with the correct signer
-        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
-        sp.revokeBatch(attestationIds, _createMockReasons(), _vrsToSignature(v, r, s), "");
+        delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
+        sp.revokeBatch(attestationIds, _createMockReasons(), delegateSignature, "");
     }
 
     function test_revoke_offchain_delegated() public {
         string[] memory offchainAttestationIds = _createMockAttestationIds();
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         bytes32 hash = sp.getDelegatedOffchainAttestHash(offchainAttestationIds[0]);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        bytes memory delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
         vm.warp(100);
-        sp.attestOffchain(offchainAttestationIds[0], signer, _vrsToSignature(v, r, s));
+        sp.attestOffchain(offchainAttestationIds[0], signer, delegateSignature);
         // Try to fail on purpose first
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.revokeOffchain(offchainAttestationIds[0], "", _vrsToSignature(v, r, s));
+        sp.revokeOffchain(offchainAttestationIds[0], "", delegateSignature);
         // Revoke correctly
         string memory reason = "reason";
         hash = sp.getDelegatedOffchainRevokeHash(offchainAttestationIds[0], reason);
-        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
-        sp.revokeOffchain(offchainAttestationIds[0], reason, _vrsToSignature(v, r, s));
+        delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
+        sp.revokeOffchain(offchainAttestationIds[0], reason, delegateSignature);
     }
 
     function test_revoke_offchain_batch_delegated() public {
         string[] memory offchainAttestationIds = _createMockAttestationIds();
         (address signer, uint256 signerPk) = makeAddrAndKey("signer");
         bytes32 hash = sp.getDelegatedOffchainAttestBatchHash(offchainAttestationIds);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        bytes memory delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
         vm.warp(100);
-        sp.attestOffchainBatch(offchainAttestationIds, signer, _vrsToSignature(v, r, s));
+        sp.attestOffchainBatch(offchainAttestationIds, signer, delegateSignature);
         vm.prank(prankSender);
         string memory offchainAttestationIdPranked = "prank";
         sp.attestOffchain(offchainAttestationIdPranked, address(0), "");
         string[] memory reasons = _createMockReasons();
         // Try to fail on purpose first
         vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
-        sp.revokeOffchainBatch(offchainAttestationIds, _createMockReasons(), _vrsToSignature(v, r, s));
+        sp.revokeOffchainBatch(offchainAttestationIds, _createMockReasons(), delegateSignature);
         // Make sure the signer cannot revoke someone else's attestation
         string memory offchainAttestationId1 = offchainAttestationIds[1];
         offchainAttestationIds[1] = offchainAttestationIdPranked;
         hash = sp.getDelegatedOffchainRevokeBatchHash(offchainAttestationIds, reasons);
-        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
+        delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
         vm.expectRevert(abi.encodeWithSelector(AttestationWrongAttester.selector));
-        sp.revokeOffchainBatch(offchainAttestationIds, _createMockReasons(), _vrsToSignature(v, r, s));
+        sp.revokeOffchainBatch(offchainAttestationIds, _createMockReasons(), delegateSignature);
         // Revoke correctly
         offchainAttestationIds[1] = offchainAttestationId1;
         hash = sp.getDelegatedOffchainRevokeBatchHash(offchainAttestationIds, reasons);
-        (v, r, s) = vm.sign(signerPk, MessageHashUtils.toEthSignedMessageHash(hash));
-        sp.revokeOffchainBatch(offchainAttestationIds, _createMockReasons(), _vrsToSignature(v, r, s));
+        delegateSignature = _createDelegatedSignature(signer, signerPk, hash);
+        sp.revokeOffchainBatch(offchainAttestationIds, _createMockReasons(), delegateSignature);
+    }
+
+    function test_delegated_signature_replay_rejected() public {
+        Schema[] memory schemas = _createMockSchemas();
+        uint64 schemaId = sp.register(schemas[0], "");
+        uint64[] memory schemaIds = new uint64[](2);
+        schemaIds[0] = schemaId;
+        schemaIds[1] = schemaId;
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
+        (address signer, uint256 signerPk) = makeAddrAndKey("signer");
+        attestations[0].attester = signer;
+        bytes memory delegateSignature =
+            _createDelegatedSignature(signer, signerPk, sp.getDelegatedAttestHash(attestations[0]));
+
+        sp.attest(attestations[0], indexingKeys[0], delegateSignature, "");
+        assertEq(sp.delegationNonces(signer), 1);
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
+        sp.attest(attestations[0], indexingKeys[0], delegateSignature, "");
+    }
+
+    function test_delegated_signature_with_wrong_nonce_rejected() public {
+        Schema[] memory schemas = _createMockSchemas();
+        uint64 schemaId = sp.register(schemas[0], "");
+        uint64[] memory schemaIds = new uint64[](2);
+        schemaIds[0] = schemaId;
+        schemaIds[1] = schemaId;
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
+        (address signer, uint256 signerPk) = makeAddrAndKey("signer");
+        attestations[0].attester = signer;
+        bytes memory delegateSignature =
+            _createDelegatedSignature(signer, signerPk, sp.getDelegatedAttestHash(attestations[0]), 1, _deadline());
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
+        sp.attest(attestations[0], indexingKeys[0], delegateSignature, "");
+    }
+
+    function test_delegated_signature_with_expired_deadline_rejected() public {
+        vm.warp(100);
+        Schema[] memory schemas = _createMockSchemas();
+        uint64 schemaId = sp.register(schemas[0], "");
+        uint64[] memory schemaIds = new uint64[](2);
+        schemaIds[0] = schemaId;
+        schemaIds[1] = schemaId;
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
+        (address signer, uint256 signerPk) = makeAddrAndKey("signer");
+        attestations[0].attester = signer;
+        bytes memory delegateSignature =
+            _createDelegatedSignature(signer, signerPk, sp.getDelegatedAttestHash(attestations[0]), 0, 99);
+
+        vm.expectRevert(abi.encodeWithSelector(DelegationExpired.selector));
+        sp.attest(attestations[0], indexingKeys[0], delegateSignature, "");
+    }
+
+    function test_legacy_delegated_signature_rejected() public {
+        Schema[] memory schemas = _createMockSchemas();
+        uint64 schemaId = sp.register(schemas[0], "");
+        uint64[] memory schemaIds = new uint64[](2);
+        schemaIds[0] = schemaId;
+        schemaIds[1] = schemaId;
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
+        (address signer, uint256 signerPk) = makeAddrAndKey("signer");
+        attestations[0].attester = signer;
+        bytes memory legacySignature = _signDigest(signerPk, sp.getDelegatedAttestHash(attestations[0]));
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
+        sp.attest(attestations[0], indexingKeys[0], legacySignature, "");
+    }
+
+    function test_delegated_signature_bound_to_contract() public {
+        SP otherSP = new SP();
+        otherSP.initialize(1, 1);
+        Schema[] memory schemas = _createMockSchemas();
+        uint64 schemaId = sp.register(schemas[0], "");
+        otherSP.register(schemas[0], "");
+        uint64[] memory schemaIds = new uint64[](2);
+        schemaIds[0] = schemaId;
+        schemaIds[1] = schemaId;
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
+        (address signer, uint256 signerPk) = makeAddrAndKey("signer");
+        attestations[0].attester = signer;
+        bytes memory delegateSignature =
+            _createDelegatedSignature(signer, signerPk, sp.getDelegatedAttestHash(attestations[0]));
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
+        otherSP.attest(attestations[0], indexingKeys[0], delegateSignature, "");
+    }
+
+    function test_delegated_signature_bound_to_chain() public {
+        Schema[] memory schemas = _createMockSchemas();
+        uint64 schemaId = sp.register(schemas[0], "");
+        uint64[] memory schemaIds = new uint64[](2);
+        schemaIds[0] = schemaId;
+        schemaIds[1] = schemaId;
+        (Attestation[] memory attestations, string[] memory indexingKeys) = _createMockAttestations(schemaIds);
+        (address signer, uint256 signerPk) = makeAddrAndKey("signer");
+        attestations[0].attester = signer;
+        bytes memory delegateSignature =
+            _createDelegatedSignature(signer, signerPk, sp.getDelegatedAttestHash(attestations[0]));
+
+        vm.chainId(block.chainid + 1);
+        vm.expectRevert(abi.encodeWithSelector(InvalidDelegateSignature.selector));
+        sp.attest(attestations[0], indexingKeys[0], delegateSignature, "");
     }
 
     function _createMockSchemas() internal view returns (Schema[] memory) {
@@ -676,5 +782,42 @@ contract SPTest is Test {
 
     function _vrsToSignature(uint8 v, bytes32 r, bytes32 s) internal pure returns (bytes memory) {
         return abi.encodePacked(r, s, v);
+    }
+
+    function _createDelegatedSignature(
+        address signer,
+        uint256 signerPk,
+        bytes32 actionHash
+    )
+        internal
+        view
+        returns (bytes memory)
+    {
+        return _createDelegatedSignature(signer, signerPk, actionHash, sp.delegationNonces(signer), _deadline());
+    }
+
+    function _createDelegatedSignature(
+        address signer,
+        uint256 signerPk,
+        bytes32 actionHash,
+        uint256 nonce,
+        uint64 deadline
+    )
+        internal
+        view
+        returns (bytes memory)
+    {
+        bytes memory signature =
+            _signDigest(signerPk, sp.getDelegatedAuthorizationDigest(signer, actionHash, nonce, deadline));
+        return abi.encode(nonce, deadline, signature);
+    }
+
+    function _signDigest(uint256 signerPk, bytes32 digest) internal pure returns (bytes memory) {
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
+        return _vrsToSignature(v, r, s);
+    }
+
+    function _deadline() internal view returns (uint64) {
+        return uint64(block.timestamp + 1 days);
     }
 }

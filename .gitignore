@@ -53,3 +53,6 @@ node_modules
 
 *.tgz
 pnpm-lock.yaml
+
+# claude-mem plugin artifacts
+CLAUDE.md
